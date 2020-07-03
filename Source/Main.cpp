@@ -61,7 +61,7 @@ public:
 
         int32_t err = 0;
 
-        mServer.reset(aoo::net::iserver::create(10999, &err));
+        mServer.reset(aoo::net::iserver::create(10998, &err));
         
         if (err != 0) {
             DebugLogC("Error creating Aoo Server: %d ", err);
