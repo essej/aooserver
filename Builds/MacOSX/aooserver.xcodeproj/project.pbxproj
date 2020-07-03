@@ -17,10 +17,6 @@
 			isa = PBXBuildFile;
 			fileRef = 258C91D0F40785C131D15B1D;
 		};
-		6F86F1C986FCB8E5ADB48485 = {
-			isa = PBXBuildFile;
-			fileRef = 3E2B325B34C1377032423282;
-		};
 		90FA248CCA3BEBAA02ECAA47 = {
 			isa = PBXBuildFile;
 			fileRef = 19DBC5D6AE5A92A785A87395;
@@ -40,10 +36,6 @@
 		F88E0E0D9794C885EB1CEE6A = {
 			isa = PBXBuildFile;
 			fileRef = E23E582F2643A89383BB5A73;
-		};
-		154D980D8306C0C97468CDFB = {
-			isa = PBXBuildFile;
-			fileRef = F70E81DBECA463100C4C2EE1;
 		};
 		E4CE7A2A3CBBC2080B962754 = {
 			isa = PBXBuildFile;
@@ -113,17 +105,9 @@
 			isa = PBXBuildFile;
 			fileRef = D144AD311DE0A9C887B1C411;
 		};
-		58197452D841DDEE6424E389 = {
-			isa = PBXBuildFile;
-			fileRef = 88FE3EF4BB5FDBC754A3BDE1;
-		};
 		FAE27DEAE89146A790B8E2C2 = {
 			isa = PBXBuildFile;
 			fileRef = 0BB4454DE76565171AC0DEAB;
-		};
-		03FAB99D8B81FE8D709E1E2C = {
-			isa = PBXBuildFile;
-			fileRef = 6BE7E9A06A449E7B66B52959;
 		};
 		53158B53414D0E064958CF11 = {
 			isa = PBXBuildFile;
@@ -140,18 +124,6 @@
 		C13C75ADF95399841A1870DB = {
 			isa = PBXBuildFile;
 			fileRef = ED978398E312FDA4E1AEAA60;
-		};
-		AF23F6840314471FF99CE3B2 = {
-			isa = PBXBuildFile;
-			fileRef = AD38BF136567F3777A18968D;
-		};
-		15CCE055EF857CC09E1EF4BE = {
-			isa = PBXBuildFile;
-			fileRef = DC3BB94C779EEA7786A39278;
-		};
-		5A84D9721CB50076DE4B9395 = {
-			isa = PBXBuildFile;
-			fileRef = 1B3E64635120133EBDA3554A;
 		};
 		0B7A7EECBE3A102ED9B353F6 = {
 			isa = PBXFileReference;
@@ -216,13 +188,6 @@
 			path = ../../../aoo/deps/oscpack/osc/OscPrintReceivedElements.h;
 			sourceTree = "SOURCE_ROOT";
 		};
-		1B3E64635120133EBDA3554A = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.cpp.objcpp;
-			name = "include_juce_gui_extra.mm";
-			path = "../../JuceLibraryCode/include_juce_gui_extra.mm";
-			sourceTree = "SOURCE_ROOT";
-		};
 		20018D8092AB2205828166AE = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.h;
@@ -278,13 +243,6 @@
 			name = "aoo_utils.hpp";
 			path = "../../../aoo/lib/aoo/aoo_utils.hpp";
 			sourceTree = "SOURCE_ROOT";
-		};
-		3E2B325B34C1377032423282 = {
-			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = Carbon.framework;
-			path = System/Library/Frameworks/Carbon.framework;
-			sourceTree = SDKROOT;
 		};
 		3E4A35F394E6E2241A96289A = {
 			isa = PBXFileReference;
@@ -349,25 +307,11 @@
 			path = ../../../aoo/lib/src/client.hpp;
 			sourceTree = "SOURCE_ROOT";
 		};
-		5F392C239CE9A6FD827577E4 = {
-			isa = PBXFileReference;
-			lastKnownFileType = file;
-			name = "juce_graphics";
-			path = "../../JuceLibraryCode/modules/juce_graphics";
-			sourceTree = "SOURCE_ROOT";
-		};
 		6112FA4BA12999C1AA5B5615 = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.cpp.cpp;
 			name = "net_utils.cpp";
 			path = "../../../aoo/lib/src/net_utils.cpp";
-			sourceTree = "SOURCE_ROOT";
-		};
-		630D876831EA29D3AD8CBEE3 = {
-			isa = PBXFileReference;
-			lastKnownFileType = file;
-			name = "juce_audio_devices";
-			path = "../../JuceLibraryCode/modules/juce_audio_devices";
 			sourceTree = "SOURCE_ROOT";
 		};
 		63E952299E1D697F5C854EFA = {
@@ -398,13 +342,6 @@
 			path = ../../../aoo/deps/oscpack/osc/OscPrintReceivedElements.cpp;
 			sourceTree = "SOURCE_ROOT";
 		};
-		6BE7E9A06A449E7B66B52959 = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.cpp.objcpp;
-			name = "include_juce_audio_processors.mm";
-			path = "../../JuceLibraryCode/include_juce_audio_processors.mm";
-			sourceTree = "SOURCE_ROOT";
-		};
 		6D587A0DD6D640F69641D5C9 = {
 			isa = PBXFileReference;
 			lastKnownFileType = wrapper.framework;
@@ -417,13 +354,6 @@
 			lastKnownFileType = sourcecode.cpp.cpp;
 			name = sync.cpp;
 			path = ../../../aoo/lib/src/sync.cpp;
-			sourceTree = "SOURCE_ROOT";
-		};
-		7891F85418E9FCBEC95CEDE2 = {
-			isa = PBXFileReference;
-			lastKnownFileType = file;
-			name = "juce_audio_processors";
-			path = "../../JuceLibraryCode/modules/juce_audio_processors";
 			sourceTree = "SOURCE_ROOT";
 		};
 		7A616AC9E2F4332A5E40F824 = {
@@ -452,13 +382,6 @@
 			lastKnownFileType = sourcecode.cpp.cpp;
 			name = Main.cpp;
 			path = ../../Source/Main.cpp;
-			sourceTree = "SOURCE_ROOT";
-		};
-		88FE3EF4BB5FDBC754A3BDE1 = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.cpp.objcpp;
-			name = "include_juce_audio_devices.mm";
-			path = "../../JuceLibraryCode/include_juce_audio_devices.mm";
 			sourceTree = "SOURCE_ROOT";
 		};
 		8C3E6C43BC39B6EE5DD4B16B = {
@@ -517,13 +440,6 @@
 			path = "../../../aoo/lib/src/net_utils.hpp";
 			sourceTree = "SOURCE_ROOT";
 		};
-		AD38BF136567F3777A18968D = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.cpp.objcpp;
-			name = "include_juce_graphics.mm";
-			path = "../../JuceLibraryCode/include_juce_graphics.mm";
-			sourceTree = "SOURCE_ROOT";
-		};
 		B83085FE42181E97AE7312CE = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.cpp.cpp;
@@ -564,13 +480,6 @@
 			lastKnownFileType = sourcecode.c.h;
 			name = OscException.h;
 			path = ../../../aoo/deps/oscpack/osc/OscException.h;
-			sourceTree = "SOURCE_ROOT";
-		};
-		CE083B0F7BC37F95D5B8AD99 = {
-			isa = PBXFileReference;
-			lastKnownFileType = file;
-			name = "juce_gui_extra";
-			path = "../../JuceLibraryCode/modules/juce_gui_extra";
 			sourceTree = "SOURCE_ROOT";
 		};
 		D0A7C91A45FBDEBB97D91206 = {
@@ -622,13 +531,6 @@
 			path = ../../../aoo/lib/src/source.cpp;
 			sourceTree = "SOURCE_ROOT";
 		};
-		DC3BB94C779EEA7786A39278 = {
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.cpp.objcpp;
-			name = "include_juce_gui_basics.mm";
-			path = "../../JuceLibraryCode/include_juce_gui_basics.mm";
-			sourceTree = "SOURCE_ROOT";
-		};
 		E2256B2137DD838C8E69A422 = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.h;
@@ -664,25 +566,11 @@
 			path = ../../../aoo/lib/src/sink.cpp;
 			sourceTree = "SOURCE_ROOT";
 		};
-		F70E81DBECA463100C4C2EE1 = {
-			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = WebKit.framework;
-			path = System/Library/Frameworks/WebKit.framework;
-			sourceTree = SDKROOT;
-		};
 		F8118107DE6A08ABAC9825CE = {
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.cpp.cpp;
 			name = OscOutboundPacketStream.cpp;
 			path = ../../../aoo/deps/oscpack/osc/OscOutboundPacketStream.cpp;
-			sourceTree = "SOURCE_ROOT";
-		};
-		F9C361B0510A4DA8FB3FEE77 = {
-			isa = PBXFileReference;
-			lastKnownFileType = file;
-			name = "juce_gui_basics";
-			path = "../../JuceLibraryCode/modules/juce_gui_basics";
 			sourceTree = "SOURCE_ROOT";
 		};
 		FE843CCF74EA3CBC5A8AF6E1 = {
@@ -809,16 +697,11 @@
 			isa = PBXGroup;
 			children = (
 				A2532E79C67D8CDD063696B2,
-				630D876831EA29D3AD8CBEE3,
 				0ED039F349038402D90AD2D3,
-				7891F85418E9FCBEC95CEDE2,
 				FE843CCF74EA3CBC5A8AF6E1,
 				221A7960152F7FF5236D7110,
 				41A25DE9F6069FCC9D46B484,
 				9389F799DBC089D5075945A9,
-				5F392C239CE9A6FD827577E4,
-				F9C361B0510A4DA8FB3FEE77,
-				CE083B0F7BC37F95D5B8AD99,
 			);
 			name = "JUCE Modules";
 			sourceTree = "<group>";
@@ -828,16 +711,11 @@
 			children = (
 				27343144B0958E266B959669,
 				D144AD311DE0A9C887B1C411,
-				88FE3EF4BB5FDBC754A3BDE1,
 				0BB4454DE76565171AC0DEAB,
-				6BE7E9A06A449E7B66B52959,
 				527333D1FD55DBDAECDF1189,
 				ED800B28579C945B19957A6D,
 				247D01DBF0FE856047041C2D,
 				ED978398E312FDA4E1AEAA60,
-				AD38BF136567F3777A18968D,
-				DC3BB94C779EEA7786A39278,
-				1B3E64635120133EBDA3554A,
 				B8D727F93F692B760293F073,
 			);
 			name = "JUCE Library Code";
@@ -856,13 +734,11 @@
 			children = (
 				97ED7005498D46269B107E42,
 				258C91D0F40785C131D15B1D,
-				3E2B325B34C1377032423282,
 				19DBC5D6AE5A92A785A87395,
 				CA68AEDB112835A9D730B2D8,
 				CDA092370D8F47457ECC7042,
 				6D587A0DD6D640F69641D5C9,
 				E23E582F2643A89383BB5A73,
-				F70E81DBECA463100C4C2EE1,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1117,16 +993,11 @@
 				1F4A96A9C423BCAA220BC714,
 				2190F46F56B7BD871D51B68B,
 				D17C92269196275695712239,
-				58197452D841DDEE6424E389,
 				FAE27DEAE89146A790B8E2C2,
-				03FAB99D8B81FE8D709E1E2C,
 				53158B53414D0E064958CF11,
 				DE8477596A164D1D7F39CA7D,
 				19F0ED82C8FF12431052C09D,
 				C13C75ADF95399841A1870DB,
-				AF23F6840314471FF99CE3B2,
-				15CCE055EF857CC09E1EF4BE,
-				5A84D9721CB50076DE4B9395,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1136,13 +1007,11 @@
 			files = (
 				FA06C42A0ADE4A514E5F67B2,
 				05B6309BA023EEE3F9138033,
-				6F86F1C986FCB8E5ADB48485,
 				90FA248CCA3BEBAA02ECAA47,
 				25F41F27C7821506BE95AFEE,
 				856BCB154F2A44F1D0A9DCEB,
 				BEDBE1FB0F35F3DD82A6E392,
 				F88E0E0D9794C885EB1CEE6A,
-				154D980D8306C0C97468CDFB,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,9 +1,0 @@
-diff a/modules/juce_gui_basics/widgets/juce_TreeView.cpp b/modules/juce_gui_basics/widgets/juce_TreeView.cpp	(rejected hunks)
-@@ -1597,7 +1751,6 @@ void TreeViewItem::paintRecursively (Graphics& g, int width)
-                 p = p->parentItem;
-             }
-         }
--
-         if (mightContainSubItems())
-             paintOpenCloseButton (g, Rectangle<float> ((float) (depth * indentWidth), 0, (float) indentWidth, (float) itemHeight),
-                                   Colours::white,

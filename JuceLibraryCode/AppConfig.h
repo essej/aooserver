@@ -48,66 +48,14 @@
 #define JUCE_USE_DARK_SPLASH_SCREEN 1
 
 //==============================================================================
-#define JUCE_MODULE_AVAILABLE_juce_audio_basics          1
-#define JUCE_MODULE_AVAILABLE_juce_audio_devices         1
-#define JUCE_MODULE_AVAILABLE_juce_audio_formats         1
-#define JUCE_MODULE_AVAILABLE_juce_audio_processors      1
-#define JUCE_MODULE_AVAILABLE_juce_core                  1
-#define JUCE_MODULE_AVAILABLE_juce_cryptography          1
-#define JUCE_MODULE_AVAILABLE_juce_data_structures       1
-#define JUCE_MODULE_AVAILABLE_juce_events                1
-#define JUCE_MODULE_AVAILABLE_juce_graphics              1
-#define JUCE_MODULE_AVAILABLE_juce_gui_basics            1
-#define JUCE_MODULE_AVAILABLE_juce_gui_extra             1
+#define JUCE_MODULE_AVAILABLE_juce_audio_basics         1
+#define JUCE_MODULE_AVAILABLE_juce_audio_formats        1
+#define JUCE_MODULE_AVAILABLE_juce_core                 1
+#define JUCE_MODULE_AVAILABLE_juce_cryptography         1
+#define JUCE_MODULE_AVAILABLE_juce_data_structures      1
+#define JUCE_MODULE_AVAILABLE_juce_events               1
 
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
-
-//==============================================================================
-// juce_audio_devices flags:
-
-#ifndef    JUCE_USE_WINRT_MIDI
- //#define JUCE_USE_WINRT_MIDI 0
-#endif
-
-#ifndef    JUCE_ASIO
- //#define JUCE_ASIO 0
-#endif
-
-#ifndef    JUCE_WASAPI
- #define   JUCE_WASAPI 0
-#endif
-
-#ifndef    JUCE_WASAPI_EXCLUSIVE
- //#define JUCE_WASAPI_EXCLUSIVE 0
-#endif
-
-#ifndef    JUCE_DIRECTSOUND
- #define   JUCE_DIRECTSOUND 0
-#endif
-
-#ifndef    JUCE_ALSA
- #define   JUCE_ALSA 0
-#endif
-
-#ifndef    JUCE_JACK
- //#define JUCE_JACK 0
-#endif
-
-#ifndef    JUCE_BELA
- //#define JUCE_BELA 0
-#endif
-
-#ifndef    JUCE_USE_ANDROID_OBOE
- //#define JUCE_USE_ANDROID_OBOE 0
-#endif
-
-#ifndef    JUCE_USE_ANDROID_OPENSLES
- //#define JUCE_USE_ANDROID_OPENSLES 0
-#endif
-
-#ifndef    JUCE_DISABLE_AUDIO_MIXING_WITH_OTHER_APPS
- //#define JUCE_DISABLE_AUDIO_MIXING_WITH_OTHER_APPS 0
-#endif
 
 //==============================================================================
 // juce_audio_formats flags:
@@ -130,25 +78,6 @@
 
 #ifndef    JUCE_USE_WINDOWS_MEDIA_FORMAT
  //#define JUCE_USE_WINDOWS_MEDIA_FORMAT 1
-#endif
-
-//==============================================================================
-// juce_audio_processors flags:
-
-#ifndef    JUCE_PLUGINHOST_VST
- //#define JUCE_PLUGINHOST_VST 0
-#endif
-
-#ifndef    JUCE_PLUGINHOST_VST3
- //#define JUCE_PLUGINHOST_VST3 0
-#endif
-
-#ifndef    JUCE_PLUGINHOST_AU
- //#define JUCE_PLUGINHOST_AU 0
-#endif
-
-#ifndef    JUCE_PLUGINHOST_LADSPA
- //#define JUCE_PLUGINHOST_LADSPA 0
 #endif
 
 //==============================================================================
@@ -199,63 +128,6 @@
 
 #ifndef    JUCE_EXECUTE_APP_SUSPEND_ON_IOS_BACKGROUND_TASK
  //#define JUCE_EXECUTE_APP_SUSPEND_ON_IOS_BACKGROUND_TASK 0
-#endif
-
-//==============================================================================
-// juce_graphics flags:
-
-#ifndef    JUCE_USE_COREIMAGE_LOADER
- //#define JUCE_USE_COREIMAGE_LOADER 1
-#endif
-
-#ifndef    JUCE_USE_DIRECTWRITE
- //#define JUCE_USE_DIRECTWRITE 1
-#endif
-
-#ifndef    JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING
- //#define JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING 0
-#endif
-
-//==============================================================================
-// juce_gui_basics flags:
-
-#ifndef    JUCE_ENABLE_REPAINT_DEBUGGING
- //#define JUCE_ENABLE_REPAINT_DEBUGGING 0
-#endif
-
-#ifndef    JUCE_USE_XRANDR
- //#define JUCE_USE_XRANDR 1
-#endif
-
-#ifndef    JUCE_USE_XINERAMA
- //#define JUCE_USE_XINERAMA 1
-#endif
-
-#ifndef    JUCE_USE_XSHM
- //#define JUCE_USE_XSHM 1
-#endif
-
-#ifndef    JUCE_USE_XRENDER
- //#define JUCE_USE_XRENDER 0
-#endif
-
-#ifndef    JUCE_USE_XCURSOR
- //#define JUCE_USE_XCURSOR 1
-#endif
-
-#ifndef    JUCE_WIN_PER_MONITOR_DPI_AWARE
- //#define JUCE_WIN_PER_MONITOR_DPI_AWARE 1
-#endif
-
-//==============================================================================
-// juce_gui_extra flags:
-
-#ifndef    JUCE_WEB_BROWSER
- //#define JUCE_WEB_BROWSER 1
-#endif
-
-#ifndef    JUCE_ENABLE_LIVE_CONSTANT_EDITOR
- //#define JUCE_ENABLE_LIVE_CONSTANT_EDITOR 0
 #endif
 
 //==============================================================================

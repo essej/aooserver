@@ -223,7 +223,7 @@ static void installKeyboardBreakHandler()
     sigaction (SIGINT, &saction, 0);
 }
 
-
+#if 0
 class AooServerApplication : public JUCEApplication, public Timer
 {
 public:
@@ -257,18 +257,21 @@ public:
 
 START_JUCE_APPLICATION (AooServerApplication)
 
-#if 0
+#else
+
 //==============================================================================
 int main (int argc, char* argv[])
 {
     // ..your code goes here!    
     cerr << "Hello AOO world!" << endl;
- 
+
+    installKeyboardBreakHandler();
+
     AooServer server;
     
     server.startServer();
     
-    while (true) {
+    while (!keyboardBreakOccurred) {
      
         sleep(20);
         
