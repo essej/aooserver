@@ -12,6 +12,7 @@
 
 #include "aoo/aoo_net.hpp"
 #include "DebugLogC.h"
+#include <unistd.h>
 
 #include <iostream>
 
@@ -273,7 +274,7 @@ int main (int argc, char* argv[])
     
     while (!keyboardBreakOccurred) {
      
-        sleep(20);
+        usleep(20000);
         
         server.handleEvents();                       
     }
