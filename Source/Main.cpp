@@ -11,10 +11,10 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include "aoo/aoo_net.hpp"
-#include "DebugLogC.h"
 #include <unistd.h>
 
 #include <iostream>
+#include <signal.h>
 
 using namespace std;
 
@@ -49,9 +49,18 @@ protected:
 class AooServer
 {
 public:
-    AooServer() {
+    AooServer(int port=10998) : mPort(port) {
         
     }
+    
+    int getPort() const { return mPort; }
+    
+    void setLoggingEnabled(bool flag, const String & logdir = "") {
+        mLoggingEnabled = flag;
+        mUseLogDir = logdir;
+        updateLogging();
+    }
+    
     
     bool startServer() 
     {
@@ -61,10 +70,10 @@ public:
 
         int32_t err = 0;
 
-        mServer.reset(aoo::net::iserver::create(10998, &err));
+        mServer.reset(aoo::net::iserver::create(mPort, &err));
         
         if (err != 0) {
-            DebugLogC("Error creating Aoo Server: %d ", err);
+            DBG("Error creating Aoo Server:  " << err);
         }
         
         if (mServer) {
@@ -74,7 +83,7 @@ public:
             //mEventThread = std::make_unique<AooEventThread>(*this);    
             //mEventThread->startThread();
             
-            DebugLogC("Started server, ready to go.");
+            //DebugLogC("Started server, ready to go.");
             
             return true;
         }
@@ -90,9 +99,12 @@ public:
 
         
         if (mServer) {
-           DebugLogC("waiting on server thread to die");
+           DBG("waiting on server thread to die");
            mServer->quit();
-           mServerThread->stopThread(400);    
+           Thread::sleep(800);
+           DBG("stopping thread");
+           mServerThread->stopThread(400);
+           DBG("thread stopped");
            Thread::sleep(200);
            mServer.reset();
         }
@@ -106,10 +118,31 @@ public:
     }
     
     virtual ~AooServer() {
-        DebugLogC("Destructor");
+        DBG("Destructor");
 
         stopServer();
     }
+    
+    void logEvent(const String & evstr) {
+        
+            // log format is
+            // timestamp,currgroups,currusers,evstr
+            
+            String timestamp = Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+            String message;
+            message << timestamp << "," 
+            << mServer->get_group_count() << "," 
+            << mServer->get_user_count() << ","
+            << evstr;
+
+        if (mLogger) {                
+            mLogger->logMessage(message);
+        }
+        else {
+            cerr << message << endl;
+        }
+    }
+    
     
     static int32_t gHandleServerEvents(void * user, const aoo_event ** events, int32_t n)
     {
@@ -120,9 +153,7 @@ public:
     void handleEvents() {
         const ScopedLock sl (mLock); 
 
-        if (mServer->events_available()) {
-            mServer->handle_events(gHandleServerEvents, this);
-        }        
+        mServer->handle_events(gHandleServerEvents, this);
     }
     
     int32_t handleServerEvents(const aoo_event ** events, int32_t n)
@@ -132,16 +163,20 @@ public:
                 case AOONET_SERVER_USER_JOIN_EVENT:
                 {
                     aoonet_server_user_event *e = (aoonet_server_user_event *)events[i];
-                    
-                    DebugLogC("User joined: %s", e->name);
+
+                    String msg;
+                    msg << "UserJoin," << e->name;
+                    logEvent(msg);
                     
                     break;
                 }
                 case AOONET_SERVER_USER_LEAVE_EVENT:
                 {
                     aoonet_server_user_event *e = (aoonet_server_user_event *)events[i];
-                    
-                    DebugLogC("User left: %s", e->name);
+
+                    String msg;
+                    msg << "UserLeave," << e->name;                    
+                    logEvent(msg);
                     
                     
                     break;
@@ -150,15 +185,19 @@ public:
                 {
                     aoonet_server_group_event *e = (aoonet_server_group_event *)events[i];
                     
-                    DebugLogC("Group Joined: %s  by user: %s", e->group, e->user);
+                    String msg;
+                    msg << "GroupJoin," << e->group << "," << e->user;
+                    logEvent(msg);
                     
                     break;
                 }
                 case AOONET_SERVER_GROUP_LEAVE_EVENT:
                 {
                     aoonet_server_group_event *e = (aoonet_server_group_event *)events[i];
-                    
-                    DebugLogC("Group Left: %s  by user: %s", e->group, e->user);
+
+                    String msg;
+                    msg << "GroupLeave," << e->group << "," << e->user;
+                    logEvent(msg);
                     
                     break;
                 }
@@ -166,12 +205,16 @@ public:
                 {
                     aoonet_server_event *e = (aoonet_server_event *)events[i];
                     
-                    DebugLogC("Server error: %s", e->errormsg);
+                    String msg;
+                    msg << "Error," << e->errormsg;
+                    logEvent(msg);
                     
                     break;
                 }
                 default:
-                    DebugLogC("Got unknown server event: %d", events[i]->type);
+                    String msg;
+                    msg << "Unknown," << events[i]->type;
+                    logEvent(msg);
                     break;
             }
         }
@@ -180,10 +223,46 @@ public:
     
 protected:
     
+    void updateLogging() {
+        
+        if (!mLoggingEnabled && mLogger) {
+            const ScopedLock sl (mLock); 
+            // stop logger
+            mLogger.reset();
+        }
+        else if (mLoggingEnabled && !mLogger) {
+            // create logfile
+            const ScopedLock sl (mLock); 
+            String message("SonoBus AOO Server");
+            
+            if (mUseLogDir.isEmpty()) {
+                mLogger.reset(FileLogger::createDateStampedLogger("aooserver", "aooserver_log_", ".txt", message));
+            }
+            else {
+                File logdir(mUseLogDir);
+                mLogger.reset(new FileLogger (logdir.getChildFile ("aooserver_log_" + Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S"))
+                                              .withFileExtension (".txt")
+                                              .getNonexistentSibling(),
+                                              message, 0));                
+            }
+            
+            DBG("Created logfile: " << mLogger->getLogFile().getFullPathName());
+        }
+        
+    }
+
+    
+    int mPort = 10998;
+    
+    bool mLoggingEnabled = true;
+    String mUseLogDir;
+    
     CriticalSection mLock;
     
     std::unique_ptr<AooServerThread> mServerThread;
-    std::unique_ptr<AooEventThread> mEventThread;
+    //std::unique_ptr<AooEventThread> mEventThread;
+    
+    std::unique_ptr<FileLogger> mLogger;
     
     aoo::net::iserver::pointer mServer;
 };
@@ -198,7 +277,7 @@ void AooServerThread::run()  {
         
     }
     
-    DebugLogC("Event thread finishing");
+    DBG("Server thread finishing");
 }
 
 
@@ -209,7 +288,7 @@ static void keyboardBreakSignalHandler (int sig)
 {
     if (sig == SIGINT) {
         keyboardBreakOccurred = true;
-        //DebugLogC("KEYBOARD BREAK!");
+        DBG("KEYBOARD BREAK!");
     }
 }
 
@@ -224,17 +303,26 @@ static void installKeyboardBreakHandler()
     sigaction (SIGINT, &saction, 0);
 }
 
-#if 0
-class AooServerApplication : public JUCEApplication, public Timer
+#if 1
+class AooServerApplication : public JUCEApplicationBase, public Timer
 {
 public:
-    const String getApplicationName() override    { return "aooserver"; }
-    const String getApplicationVersion() override { return "1.0.0"; }
+    const String getApplicationName() override    { return ProjectInfo::projectName; }
+    const String getApplicationVersion() override { return ProjectInfo::versionString; }
     
     void initialise (const String& /*commandLineParameters*/) override
     {
         // Start your app here
         installKeyboardBreakHandler();
+        
+        auto params = getCommandLineParameterArray();
+        ArgumentList arglist(getApplicationName(), params);
+        
+        if (arglist.containsOption("-l|--logdir")) {
+            String logdir = arglist.getValueForOption("-l");
+        
+            server.setLoggingEnabled(true, logdir);
+        }
         
         server.startServer();
 
@@ -243,6 +331,31 @@ public:
     
     void shutdown() override {}
 
+    void anotherInstanceStarted (const String& commandLine) override {
+        
+    }
+
+    bool moreThanOneInstanceAllowed() override { return true; }
+
+   
+    void systemRequestedQuit() override {
+        
+    }
+
+    void suspended() override {
+        
+    }
+
+    void resumed() override {
+        
+    }
+    
+    void unhandledException (const std::exception*,
+                                     const String& sourceFilename,
+                                     int lineNumber) override {
+        
+    }
+    
     void timerCallback() override
     {
         if (keyboardBreakOccurred) {
@@ -252,6 +365,8 @@ public:
     }
 
 
+    
+    
     AooServer server;
 
 };
@@ -263,14 +378,18 @@ START_JUCE_APPLICATION (AooServerApplication)
 //==============================================================================
 int main (int argc, char* argv[])
 {
-    // ..your code goes here!    
-    cerr << "Hello AOO world!" << endl;
-
     installKeyboardBreakHandler();
 
     AooServer server;
     
-    server.startServer();
+    if (server.startServer()) {
+        
+        cerr << "AOO Server started on port " <<  server.getPort() << endl;
+    }
+    else {
+        exit(1);
+    }
+
     
     while (!keyboardBreakOccurred) {
      

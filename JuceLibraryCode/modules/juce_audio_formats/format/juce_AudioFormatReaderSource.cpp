@@ -68,8 +68,10 @@ void AudioFormatReaderSource::getNextAudioBlock (const AudioSourceChannelInfo& i
 
         if (looping)
         {
-            const int64 newStart = start > loopStartPos ? ((start - loopStartPos) % loopLen) + loopStartPos : start;
-            const int64 newEnd = start + info.numSamples > loopStartPos ? ((start + info.numSamples - loopStartPos) % loopLen) + loopStartPos : start + info.numSamples;
+            // TODO - crossfade loop boundary if possible
+            const int64 loopstart = loopStartPos;
+            const int64 newStart = start > loopstart ? ((start - loopstart) % loopLen) + loopstart : start;
+            const int64 newEnd = start + info.numSamples > loopstart ? ((start + info.numSamples - loopstart) % loopLen) + loopstart : start + info.numSamples;
 
             if (newEnd > newStart)
             {
@@ -78,13 +80,13 @@ void AudioFormatReaderSource::getNextAudioBlock (const AudioSourceChannelInfo& i
             }
             else
             {
-                const int endSamps = (int) ((loopStartPos + loopLen) - newStart);
+                const int endSamps = (int) ((loopstart + loopLen) - newStart);
 
                 reader->read (info.buffer, info.startSample,
                               endSamps, newStart, true, true);
 
                 reader->read (info.buffer, info.startSample + endSamps,
-                              (int) (newEnd - loopStartPos), loopStartPos, true, true);
+                              (int) (newEnd - loopstart), loopstart, true, true);
             }
 
             nextPlayPos = newEnd;

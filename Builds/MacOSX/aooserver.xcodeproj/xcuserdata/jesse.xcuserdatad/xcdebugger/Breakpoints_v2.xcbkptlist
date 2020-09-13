@@ -30,10 +30,10 @@
             filePath = "../../Source/Main.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "223"
-            endingLineNumber = "223"
-            landmarkName = "installKeyboardBreakHandler()"
-            landmarkType = "9">
+            startingLineNumber = "250"
+            endingLineNumber = "250"
+            landmarkName = "updateLogging()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -48,8 +48,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "63"
             endingLineNumber = "63"
-            landmarkName = "startServer()"
-            landmarkType = "7">
+            landmarkName = "AooServer"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -62,10 +62,10 @@
             filePath = "../../Source/Main.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "210"
-            endingLineNumber = "210"
-            landmarkName = "keyboardBreakSignalHandler(sig)"
-            landmarkType = "9">
+            startingLineNumber = "237"
+            endingLineNumber = "237"
+            landmarkName = "updateLogging()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

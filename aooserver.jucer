@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" jucerVersion="5.4.3">
+<JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" jucerVersion="5.4.7">
   <MAINGROUP id="GRsEDg" name="aooserver">
     <GROUP id="{63169763-D587-B47C-DB83-06317D8C4F9A}" name="aoo">
       <GROUP id="{9D777205-C0CA-E303-520C-D50E4586000E}" name="aoo_headers">
@@ -72,7 +72,7 @@
     <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="USE_CODEC_OPUS=0">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" headerPath="$(HOME)/src/aoo/lib&#10;$(HOME)/src/aoo/deps"
-                       defines="LOGLEVEL=3"/>
+                       defines="LOGLEVEL=1"/>
         <CONFIGURATION isDebug="0" name="Release" headerPath="$(HOME)/src/aoo/lib&#10;$(HOME)/src/aoo/deps"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

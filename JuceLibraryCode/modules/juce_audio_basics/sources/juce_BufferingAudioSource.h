@@ -92,6 +92,9 @@ public:
     bool isLooping() const override             { return source->isLooping(); }
 
     /** Implements the PositionableAudioSource method. */
+    void setLooping(bool shouldLoop) override             { return source->setLooping(shouldLoop); }
+
+    /** Implements the PositionableAudioSource method. */
     void setLoopRange (int64 loopStart, int64 loopLength) override;
     
     /** Implements the PositionableAudioSource method. */
