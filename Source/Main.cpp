@@ -79,6 +79,7 @@ public:
             String errstr;
             errstr << "ServerStartError," << err;
             logEvent(errstr);
+            mServer.reset();
             return false;
         }
         
@@ -171,8 +172,9 @@ public:
     
     void handleEvents() {
         const ScopedLock sl (mLock); 
-
-        mServer->handle_events(gHandleServerEvents, this);
+        if (mServer) {
+            mServer->handle_events(gHandleServerEvents, this);
+        }
     }
     
     int32_t handleServerEvents(const aoo_event ** events, int32_t n)
@@ -389,7 +391,9 @@ public:
             //int ret = app.findAndRunCommand(arglist);
             //DBG("find command: " << ret);
             
-            server.startServer();
+            if (!server.startServer()) {
+                quit();
+            }
             
             startTimer(20);
         }
