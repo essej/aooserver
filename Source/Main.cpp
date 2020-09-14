@@ -54,6 +54,9 @@ public:
     }
     
     int getPort() const { return mPort; }
+    void setPort(int port) {
+        mPort = port;
+    }
     
     void setLoggingEnabled(bool flag, const String & logdir = "") {
         mLoggingEnabled = flag;
@@ -73,8 +76,15 @@ public:
         mServer.reset(aoo::net::iserver::create(mPort, &err));
         
         if (err != 0) {
-            DBG("Error creating Aoo Server:  " << err);
+            String errstr;
+            errstr << "ServerStartError," << err;
+            logEvent(errstr);
+            return false;
         }
+        
+            
+        String msg; msg << "ServerStart," << mPort;
+        logEvent(msg);
         
         if (mServer) {
             mServerThread = std::make_unique<AooServerThread>(this);    
@@ -99,14 +109,17 @@ public:
 
         
         if (mServer) {
-           DBG("waiting on server thread to die");
-           mServer->quit();
-           Thread::sleep(800);
-           DBG("stopping thread");
-           mServerThread->stopThread(400);
-           DBG("thread stopped");
-           Thread::sleep(200);
-           mServer.reset();
+            DBG("waiting on server thread to die");
+            mServer->quit();
+            Thread::sleep(800);
+            //DBG("stopping thread");
+            mServerThread->stopThread(400);
+            //DBG("thread stopped");
+            Thread::sleep(200);
+            mServer.reset();
+            
+            String msg; msg << "ServerStop";
+            logEvent(msg);
         }
     }
     
@@ -118,22 +131,28 @@ public:
     }
     
     virtual ~AooServer() {
-        DBG("Destructor");
+        //DBG("Destructor");
 
         stopServer();
     }
     
     void logEvent(const String & evstr) {
         
-            // log format is
-            // timestamp,currgroups,currusers,evstr
-            
-            String timestamp = Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-            String message;
-            message << timestamp << "," 
-            << mServer->get_group_count() << "," 
-            << mServer->get_user_count() << ","
-            << evstr;
+        // log format is
+        // timestamp,currgroups,currusers,evstr
+        
+        String timestamp = Time::getCurrentTime().formatted ("%Y-%m-%d %H:%M:%S");
+        String message;
+        message << timestamp << ",";
+        if (mServer) {
+            message << mServer->get_group_count() << "," 
+                    << mServer->get_user_count() << ",";
+        }
+        else {
+            message << "0,0,"; 
+        }
+        
+        message << evstr;
 
         if (mLogger) {                
             mLogger->logMessage(message);
@@ -239,7 +258,7 @@ protected:
                 mLogger.reset(FileLogger::createDateStampedLogger("aooserver", "aooserver_log_", ".txt", message));
             }
             else {
-                File logdir(mUseLogDir);
+                File logdir(File::getCurrentWorkingDirectory().getChildFile(mUseLogDir));
                 mLogger.reset(new FileLogger (logdir.getChildFile ("aooserver_log_" + Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S"))
                                               .withFileExtension (".txt")
                                               .getNonexistentSibling(),
@@ -254,7 +273,7 @@ protected:
     
     int mPort = 10998;
     
-    bool mLoggingEnabled = true;
+    bool mLoggingEnabled = false;
     String mUseLogDir;
     
     CriticalSection mLock;
@@ -315,18 +334,65 @@ public:
         // Start your app here
         installKeyboardBreakHandler();
         
+        
+        ConsoleApplication app;
+        app.addHelpCommand ("-h|--help", "Usage:", false);
+        //app.addVersionCommand ("--version|-v", "aooserver version 1.2.3");
+        
         auto params = getCommandLineParameterArray();
         ArgumentList arglist(getApplicationName(), params);
         
-        if (arglist.containsOption("-l|--logdir")) {
-            String logdir = arglist.getValueForOption("-l");
+        app.addCommand ({ "-l|--logdir",
+            "-l|--logdir logdirectory",
+            "Enables logging to file",
+            "Enables logging to file in the specified directory",
+            [this] (const auto& args) { 
+                //String logdir = args.getValueForOption("-l");
+                //this->server.setLoggingEnabled(true, logdir);
+                //DBG("Set logging to: " << logdir);
+            }
+        });
+
+        app.addCommand ({ "-p|--port",
+            "-p|--port <server_port> ",
+            "Specify the server port (default 10998)",
+            "Specify the server port (UDP and TCP) (default 10998)",
+            [this] (const auto& args) { 
+                //int port = args.getValueForOption("-p").getIntValue();
+                //if (port > 0) {
+                //    this->server.setPort(port);
+                //    DBG("Set port to: " << port);
+                //}
+            }
+        });
         
+
+        auto logdir = arglist.removeValueForOption("-l|--logdir"); 
+        if (logdir.isNotEmpty()) {        
             server.setLoggingEnabled(true, logdir);
         }
-        
-        server.startServer();
 
-        startTimer(20);
+        auto portstr = arglist.removeValueForOption("-p|--port");   
+        if (portstr.isNotEmpty()) {                
+            int port = portstr.getIntValue();
+            if (port > 0) {
+                server.setPort(port);
+            }
+        }
+
+        if (arglist.containsOption("-h|--help")) {
+            app.printCommandList(arglist);
+            quit();
+        }
+        else {
+            
+            //int ret = app.findAndRunCommand(arglist);
+            //DBG("find command: " << ret);
+            
+            server.startServer();
+            
+            startTimer(20);
+        }
     }
     
     void shutdown() override {}
