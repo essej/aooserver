@@ -365,14 +365,6 @@ IPAddress IPAddress::getLocalAddress (bool includeIPv6)
     return local();
 }
 
-Array<IPAddress::IPAddressInterfaceNamePair> IPAddress::getAllInterfaceAddresses (bool includeIPv6)
-{
-    Array<IPAddressInterfaceNamePair> infos;
-    findAllInterfaceAddresses (infos, includeIPv6);
-    return infos;    
-}
-
-
 Array<IPAddress> IPAddress::getAllAddresses (bool includeIPv6)
 {
     Array<IPAddress> addresses;

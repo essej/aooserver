@@ -183,14 +183,6 @@ public:
     */
     virtual void resumed() = 0;
 
-    /** This method is called when the application (generally on android) is started
-    */
-    virtual void started() {}
-
-    /** This method is called when the application (generally on android) is stopped
-    */
-    virtual void stopped() {}
-    
     /** If any unhandled exceptions make it through to the message dispatch loop, this
         callback will be triggered, in case you want to log them or do some other
         type of error-handling.
@@ -212,13 +204,6 @@ public:
         At the moment this method is only called on iOS.
     */
     virtual void memoryWarningReceived()     { jassertfalse; }
-
-    /** Called by the operating system when a custom file type was opened. You are expected
-     * to return true if you handled the URL.
-
-        At the moment this method is only called on iOS.
-    */
-    virtual void urlOpened(const URL& url)     { }
 
     //==============================================================================
     /** This will be called when the back button on a device is pressed. The return value

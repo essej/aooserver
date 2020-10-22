@@ -66,12 +66,6 @@ public:
     /** Returns whether loop-mode is turned on or not. */
     bool isLooping() const override                             { return looping; }
 
-    /** Sets the start position of the looping in samples. */
-    void setLoopRange (int64 loopStart, int64 loopLength) override;
-    
-    /** Returns the position where the loop playback starts.  */
-    void getLoopRange(int64 & loopStart, int64 & loopLength) const override { loopStart = loopStartPos; loopLength = loopLen; }
-
     /** Returns the reader that's being used. */
     AudioFormatReader* getAudioFormatReader() const noexcept    { return reader; }
 
@@ -101,8 +95,6 @@ private:
 
     int64 nextPlayPos;
     bool looping;
-    int64 loopStartPos;
-    int64 loopLen;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioFormatReaderSource)
 };

@@ -296,7 +296,7 @@ void MPEInstrument::noteOn (int midiChannel,
 {
     if (! isUsingChannel (midiChannel))
         return;
-    
+
     MPENote newNote (midiChannel,
                      midiNoteNumber,
                      midiNoteOnVelocity,
@@ -339,20 +339,11 @@ void MPEInstrument::noteOff (int midiChannel,
         // If no more notes are playing on this channel, reset the dimension values
         if (getLastNotePlayedPtr (midiChannel) == nullptr)
         {
-            // last dimension values received for this note should not be re-used for
-            // any new notes, so reset them:
-            // JLC
-            if (pressureDimension.trackingMode != allNotesOnChannel) {
-                pressureDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::minValue();
-            }
-            if (pitchbendDimension.trackingMode != allNotesOnChannel) {
-                pitchbendDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::centreValue();
-            }
-            if (timbreDimension.trackingMode != allNotesOnChannel) {
-                timbreDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::centreValue();
-            }
+            pressureDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::minValue();
+            pitchbendDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::centreValue();
+            timbreDimension.lastValueReceivedOnChannel[midiChannel - 1] = MPEValue::centreValue();
         }
-        
+
         if (note->keyState == MPENote::off)
         {
             listeners.call ([=] (Listener& l) { l.noteReleased (*note); });
@@ -404,9 +395,8 @@ void MPEInstrument::polyAftertouch (int midiChannel, int midiNoteNumber, MPEValu
 
 MPEValue MPEInstrument::getInitialValueForNewNote (int midiChannel, MPEDimension& dimension) const
 {
-    // JLC
-    //if (getLastNotePlayedPtr (midiChannel) != nullptr)
-    //    return &dimension == &pressureDimension ? MPEValue::minValue() : MPEValue::centreValue();
+    if (getLastNotePlayedPtr (midiChannel) != nullptr)
+        return &dimension == &pressureDimension ? MPEValue::minValue() : MPEValue::centreValue();
 
     return dimension.lastValueReceivedOnChannel[midiChannel - 1];
 }

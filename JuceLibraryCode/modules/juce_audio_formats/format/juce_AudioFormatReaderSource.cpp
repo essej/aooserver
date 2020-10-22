@@ -31,8 +31,7 @@ AudioFormatReaderSource::AudioFormatReaderSource (AudioFormatReader* const r,
                                                   const bool deleteReaderWhenThisIsDeleted)
     : reader (r, deleteReaderWhenThisIsDeleted),
       nextPlayPos (0),
-      looping (false),
-      loopStartPos(0), loopLen(reader->lengthInSamples)
+      looping (false)
 {
     jassert (reader != nullptr);
 }
@@ -43,18 +42,10 @@ int64 AudioFormatReaderSource::getTotalLength() const                   { return
 void AudioFormatReaderSource::setNextReadPosition (int64 newPosition)   { nextPlayPos = newPosition; }
 void AudioFormatReaderSource::setLooping (bool shouldLoop)              { looping = shouldLoop; }
 
-void AudioFormatReaderSource::setLoopRange (int64 loopStart, int64 loopLength)
-{
-    loopStartPos = jmax((int64)0, jmin(loopStart, reader->lengthInSamples - 1));
-    loopLen =  jmax((int64)1, jmin(reader->lengthInSamples - loopStartPos, loopLength));
-}
-
 int64 AudioFormatReaderSource::getNextReadPosition() const
 {
-    if (looping) {
-        return nextPlayPos > loopStartPos ? ((nextPlayPos - loopStartPos) % loopLen) + loopStartPos : nextPlayPos;
-    }
-    else return nextPlayPos;
+    return looping ? nextPlayPos % reader->lengthInSamples
+                   : nextPlayPos;
 }
 
 void AudioFormatReaderSource::prepareToPlay (int /*samplesPerBlockExpected*/, double /*sampleRate*/) {}
@@ -68,10 +59,8 @@ void AudioFormatReaderSource::getNextAudioBlock (const AudioSourceChannelInfo& i
 
         if (looping)
         {
-            // TODO - crossfade loop boundary if possible
-            const int64 loopstart = loopStartPos;
-            const int64 newStart = start > loopstart ? ((start - loopstart) % loopLen) + loopstart : start;
-            const int64 newEnd = start + info.numSamples > loopstart ? ((start + info.numSamples - loopstart) % loopLen) + loopstart : start + info.numSamples;
+            const int64 newStart = start % reader->lengthInSamples;
+            const int64 newEnd = (start + info.numSamples) % reader->lengthInSamples;
 
             if (newEnd > newStart)
             {
@@ -80,17 +69,16 @@ void AudioFormatReaderSource::getNextAudioBlock (const AudioSourceChannelInfo& i
             }
             else
             {
-                const int endSamps = (int) ((loopstart + loopLen) - newStart);
+                const int endSamps = (int) (reader->lengthInSamples - newStart);
 
                 reader->read (info.buffer, info.startSample,
                               endSamps, newStart, true, true);
 
                 reader->read (info.buffer, info.startSample + endSamps,
-                              (int) (newEnd - loopstart), loopstart, true, true);
+                              (int) newEnd, 0, true, true);
             }
 
             nextPlayPos = newEnd;
-            // DBG(String::formatted("Next playpos: %Ld", nextPlayPos));
         }
         else
         {

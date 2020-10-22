@@ -588,29 +588,6 @@ void IPAddress::findAllAddresses (Array<IPAddress>& result, bool includeIPv6)
     }
 }
 
-void IPAddress::findAllInterfaceAddresses (Array<IPAddressInterfaceNamePair>& result, bool includeIPv6)
-{
-    // TBD
-#if 0
-    result.addIfNotAlreadyThere (IPAddress::local());
-
-    if (includeIPv6)
-        result.addIfNotAlreadyThere (IPAddress::local (true));
-
-    GetAdaptersAddressesHelper addressesHelper;
-
-    if (addressesHelper.callGetAdaptersAddresses())
-    {
-        for (PIP_ADAPTER_ADDRESSES adapter = addressesHelper.adaptersAddresses; adapter != nullptr; adapter = adapter->Next)
-        {
-            MACAddressHelpers::findAddresses (result, includeIPv6, adapter->FirstUnicastAddress);
-            MACAddressHelpers::findAddresses (result, includeIPv6, adapter->FirstAnycastAddress);
-            MACAddressHelpers::findAddresses (result, includeIPv6, adapter->FirstMulticastAddress);
-        }
-    }
-#endif
-}
-
 IPAddress IPAddress::getInterfaceBroadcastAddress (const IPAddress&)
 {
     // TODO

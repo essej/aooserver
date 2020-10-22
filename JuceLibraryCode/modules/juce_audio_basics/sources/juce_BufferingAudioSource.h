@@ -91,15 +91,6 @@ public:
     /** Implements the PositionableAudioSource method. */
     bool isLooping() const override             { return source->isLooping(); }
 
-    /** Implements the PositionableAudioSource method. */
-    void setLooping(bool shouldLoop) override             { return source->setLooping(shouldLoop); }
-
-    /** Implements the PositionableAudioSource method. */
-    void setLoopRange (int64 loopStart, int64 loopLength) override;
-    
-    /** Implements the PositionableAudioSource method. */
-    void getLoopRange (int64 & loopStart, int64 & loopLength) const override { return source->getLoopRange(loopStart, loopLength); }
-
     /** A useful function to block until the next the buffer info can be filled.
 
         This is useful for offline rendering.
@@ -117,7 +108,7 @@ private:
     std::atomic<int64> bufferValidStart { 0 }, bufferValidEnd { 0 }, nextPlayPos { 0 };
     double sampleRate = 0;
     bool wasSourceLooping = false, isPrepared = false, prefillBuffer;
-    bool loopRangeChanged = false;
+
     bool readNextBufferChunk();
     void readBufferSection (int64 start, int length, int bufferOffset);
     int useTimeSlice() override;
