@@ -575,10 +575,10 @@ int32_t aoo::source::process(const aoo_sample **data, int32_t n, uint64_t t){
      
      if (dofadeout) {
          pushing_silent_frames_ = 4 * encoder_->blocksize();
-         LOG_WARNING("do play fadeout, pushing silent: " << pushing_silent_frames_);
+         LOG_VERBOSE("do play fadeout, pushing silent: " << pushing_silent_frames_);
      }
      if (dofadein) {
-         LOG_WARNING("do play fadein");
+         LOG_VERBOSE("do play fadein");
      }
      
      lastplay_ = play_;
@@ -646,6 +646,7 @@ int32_t aoo::source::process(const aoo_sample **data, int32_t n, uint64_t t){
             resampler_.write(pbuf, usesamples);
 
             samplesleft -= usesamples;
+            pbuf += usesamples;
             
             bool didconsume = false;
             
@@ -1225,7 +1226,7 @@ bool source::send_data(){
     } else {
         // LOG_DEBUG("couldn't send");       
         if (!play_.load() && flushingout_.load() ) {
-            LOG_WARNING("finished flushing out");
+            LOG_VERBOSE("finished flushing out");
             activeplay_ = 0;
             flushingout_ = 0;
         }
