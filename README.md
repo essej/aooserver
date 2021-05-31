@@ -27,6 +27,18 @@ is for both TCP and UDP). You can specify if timestamped log files should be
 created in a particular directory, otherwise logging will only go to the standard
 output (which it always does).
 
+# USAGE WITH DOCKER
+
+A docker image is available to use.
+
+How to use:
+
+    git clone https://github.com/essej/aooserver.git
+    cd aooserver/docker
+    docker build . -t aooserver
+    docker run -d -p 10998:10998/udp -p 10998:10998 --name aooserver aooserver
+
+How to run with flags: `docker run -d -p PORT:PORT/udp -p PORT:PORT --name aooserver aooserver aooserver [flags]`
 
 # SOURCE NOTES
 
