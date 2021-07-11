@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/essej/JUCE.git
+	branch = sono6good
+	commit = 9415d09a77b019a81381e8f964fb4a3b482be7a4
+	parent = 0198f296dc21522e2b22d9e976aea570029678aa
+	method = merge
+	cmdver = 0.4.1
