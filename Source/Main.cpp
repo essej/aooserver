@@ -8,7 +8,7 @@
   ==============================================================================
 */
 
-#include "../JuceLibraryCode/JuceHeader.h"
+#include "JuceHeader.h"
 
 #include "aoo/aoo_net.hpp"
 #include <unistd.h>
@@ -73,15 +73,20 @@ public:
 
         int32_t err = 0;
 
-        mServer.reset(aoo::net::iserver::create(mPort, &err));
+        mServer.reset(aoo::net::server::create(mPort, 0, &err));
         
-        if (err != 0) {
+        if (!mServer || err != 0) {
             String errstr;
             errstr << "ServerStartError," << err;
             logEvent(errstr);
             mServer.reset();
             return false;
         }
+        
+        mServer->set_eventhandler(
+            [](void *user, const aoo_event *event, int32_t level) {
+                static_cast<AooServer*>(user)->handleServerEvent(event, level);
+            }, this, AOO_EVENT_CALLBACK);
         
             
         String msg; msg << "ServerStart," << mPort;
@@ -164,83 +169,78 @@ public:
     }
     
     
-    static int32_t gHandleServerEvents(void * user, const aoo_event ** events, int32_t n)
-    {
-        AooServer * pp = static_cast<AooServer*> (user);
-        return pp->handleServerEvents(events, n);
-    }
     
     void handleEvents() {
         const ScopedLock sl (mLock); 
         if (mServer) {
-            mServer->handle_events(gHandleServerEvents, this);
+            mServer->poll_events();
         }
     }
     
-    int32_t handleServerEvents(const aoo_event ** events, int32_t n)
+    int32_t handleServerEvent(const aoo_event *event, int32_t level)
     {
-        for (int i = 0; i < n; ++i){
-            switch (events[i]->type){
-                case AOONET_SERVER_USER_JOIN_EVENT:
-                {
-                    aoonet_server_user_event *e = (aoonet_server_user_event *)events[i];
+        switch (event->type){
+            case AOO_NET_USER_JOIN_EVENT:
+            {
+                auto *e = (const aoo_net_user_event *)event;
 
-                    String msg;
-                    msg << "UserJoin," << e->name;
-                    logEvent(msg);
-                    
-                    break;
-                }
-                case AOONET_SERVER_USER_LEAVE_EVENT:
-                {
-                    aoonet_server_user_event *e = (aoonet_server_user_event *)events[i];
-
-                    String msg;
-                    msg << "UserLeave," << e->name;                    
-                    logEvent(msg);
-                    
-                    
-                    break;
-                }
-                case AOONET_SERVER_GROUP_JOIN_EVENT:
-                {
-                    aoonet_server_group_event *e = (aoonet_server_group_event *)events[i];
-                    
-                    String msg;
-                    msg << "GroupJoin," << e->group << "," << e->user;
-                    logEvent(msg);
-                    
-                    break;
-                }
-                case AOONET_SERVER_GROUP_LEAVE_EVENT:
-                {
-                    aoonet_server_group_event *e = (aoonet_server_group_event *)events[i];
-
-                    String msg;
-                    msg << "GroupLeave," << e->group << "," << e->user;
-                    logEvent(msg);
-                    
-                    break;
-                }
-                case AOONET_SERVER_ERROR_EVENT:
-                {
-                    aoonet_server_event *e = (aoonet_server_event *)events[i];
-                    
-                    String msg;
-                    msg << "Error," << e->errormsg;
-                    logEvent(msg);
-                    
-                    break;
-                }
-                default:
-                    String msg;
-                    msg << "Unknown," << events[i]->type;
-                    logEvent(msg);
-                    break;
+                String msg;
+                msg << "UserJoin," << e->user_name;
+                logEvent(msg);
+                
+                break;
             }
+            case AOO_NET_USER_LEAVE_EVENT:
+            {
+                auto *e = (const aoo_net_user_event *)event;
+
+                String msg;
+                msg << "UserLeave," << e->user_name;                    
+                logEvent(msg);
+                
+                
+                break;
+            }
+            case AOO_NET_GROUP_JOIN_EVENT:
+            {
+                auto *e = (const aoo_net_group_event *)event;
+                
+                String msg;
+                msg << "GroupJoin," << e->group_name << "," << e->user_name;
+                logEvent(msg);
+                
+                break;
+            }
+            case AOO_NET_GROUP_LEAVE_EVENT:
+            {
+                auto *e = (const aoo_net_group_event *)event;
+
+                String msg;
+                msg << "GroupLeave," << e->group_name << "," << e->user_name;
+                logEvent(msg);
+                
+                break;
+            }
+            case AOO_NET_ERROR_EVENT:
+            {
+                auto *e = (const aoo_net_error_event *)event;
+                
+                String msg;
+                msg << "Error," << e->error_message;
+                logEvent(msg);
+                
+                break;
+            }
+            default:
+                String msg;
+                msg << "Unknown," << event->type;
+                logEvent(msg);
+                break;
         }
-        return 1;
+    
     }
+    
+    
     
 protected:
     
@@ -285,7 +285,7 @@ protected:
     
     std::unique_ptr<FileLogger> mLogger;
     
-    aoo::net::iserver::pointer mServer;
+    aoo::net::server::pointer mServer;
 };
 
 
@@ -325,7 +325,7 @@ static void installKeyboardBreakHandler()
 }
 
 #if 1
-class AooServerApplication : public JUCEApplicationBase, public Timer
+class AooServerApplication : public JUCEApplicationBase, public juce::Timer
 {
 public:
     const String getApplicationName() override    { return ProjectInfo::projectName; }
