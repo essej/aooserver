@@ -7,12 +7,25 @@ main website at https://sonobus.net .
 
 To build it on Linux:
 
-    cd Builds/LinuxMakefile
-    CONFIG=Release make
+(First you will need some dev packages installed, none of them are actually
+needed at runtime, but the JUCE6 cmake support requires them for building):
 
-And the resulting binary will be in Builds/LinuxMakefile/build/aooserver,
+  libX11-dev(el)
+  libXrandr-dev(el) 
+  libXinerama-dev(el)
+  libXcursor-dev(el)
+  freetype-dev(el)
+  
+
+Then setup the cmake build with the script:
+    ./setupcmake.sh
+
+And build it with:
+    ./buildcmake.sh
+
+And the resulting binary will be in build/aooserver_artefacts/Release/aooserver,
 which you can copy to a system binary location of your choice
-(/usr/local/bin, for example).
+(/usr/local/bin, for example) if you want..
 
 # USAGE
 
@@ -34,8 +47,5 @@ The deps/aoo library dependency is a git subrepo (https://github.com/ingydotnet/
 so all dependencies are alread included in this repository. 
 
 JUCE is used here mostly as a hedge against future development, when
-this server might have some additional audio processing capabilities. All
-the JUCE source code necessary to build it is included in JuceLibraryCode,
-as installed by ProJucer when using the aooserver.jucer as source. If you
-want to contribute to further development, you'll need to have JUCE 5 installed
-elsewhere.
+this server might have some additional audio processing capabilities. 
+
