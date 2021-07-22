@@ -10,17 +10,19 @@ To build it on Linux:
 (First you will need some dev packages installed, none of them are actually
 needed at runtime, but the JUCE6 cmake support requires them for building):
 
-  libX11-dev(el)
-  libXrandr-dev(el) 
-  libXinerama-dev(el)
-  libXcursor-dev(el)
-  freetype-dev(el)
+    libX11-dev(el)
+    libXrandr-dev(el) 
+    libXinerama-dev(el)
+    libXcursor-dev(el)
+    freetype-dev(el)
   
 
 Then setup the cmake build with the script:
+
     ./setupcmake.sh
 
 And build it with:
+
     ./buildcmake.sh
 
 And the resulting binary will be in build/aooserver_artefacts/Release/aooserver,
