@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" version="1.0.1"
+              jucerFormatVersion="1">
+  <MAINGROUP id="GRsEDg" name="aooserver">
+    <GROUP id="{24D97FFE-8626-16CD-2BA0-9F94E04385F6}" name="aoo">
+      <GROUP id="{36606E28-162C-C53B-EFE2-5720A705ADC2}" name="common">
+        <FILE id="AxGZ7w" name="lockfree.hpp" compile="0" resource="0" file="deps/aoo/common/lockfree.hpp"/>
+        <FILE id="Ybupk0" name="net_utils.cpp" compile="1" resource="0" file="deps/aoo/common/net_utils.cpp"/>
+        <FILE id="kAFanP" name="net_utils.hpp" compile="0" resource="0" file="deps/aoo/common/net_utils.hpp"/>
+        <FILE id="i0XI6b" name="ntp.cpp" compile="1" resource="0" file="deps/aoo/common/ntp.cpp"/>
+        <FILE id="UbuCoe" name="sync.cpp" compile="1" resource="0" file="deps/aoo/common/sync.cpp"/>
+        <FILE id="IjKvmx" name="sync.hpp" compile="0" resource="0" file="deps/aoo/common/sync.hpp"/>
+        <FILE id="pjbHTw" name="time.cpp" compile="1" resource="0" file="deps/aoo/common/time.cpp"/>
+        <FILE id="Kv1DGA" name="time.hpp" compile="0" resource="0" file="deps/aoo/common/time.hpp"/>
+        <FILE id="h2DMgw" name="utils.hpp" compile="0" resource="0" file="deps/aoo/common/utils.hpp"/>
+      </GROUP>
+      <GROUP id="{2DF67E37-6AF9-3BAB-4A3C-BDD62DA1FF2B}" name="aoo_source">
+        <GROUP id="{1ECDA15A-1B25-FF6D-9AD8-30195F800B33}" name="codec">
+          <FILE id="Qji6MO" name="opus.cpp" compile="0" resource="0" file="deps/aoo/aoo/src/codec/opus.cpp"/>
+          <FILE id="CvdhFL" name="pcm.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/codec/pcm.cpp"/>
+        </GROUP>
+        <GROUP id="{8447ED7B-5B31-AED8-8FC0-7DAD2598FFFC}" name="net">
+          <FILE id="GrmGcD" name="client.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/client.cpp"/>
+          <FILE id="a0ZA7z" name="client.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/client.hpp"/>
+          <FILE id="Sv27vZ" name="commands.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/commands.hpp"/>
+          <FILE id="vtmXEb" name="server.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/server.cpp"/>
+          <FILE id="KriqdL" name="server.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/server.hpp"/>
+          <FILE id="eOUPgE" name="SLIP.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/SLIP.hpp"/>
+        </GROUP>
+        <FILE id="rLFw6C" name="aoo.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/aoo.cpp"/>
+        <FILE id="rCz8co" name="buffer.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/buffer.cpp"/>
+        <FILE id="aibm74" name="buffer.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/buffer.hpp"/>
+        <FILE id="aWr54z" name="codec.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/codec.hpp"/>
+        <FILE id="YKs5sj" name="imp.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/imp.hpp"/>
+        <FILE id="VwnYGd" name="resampler.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/resampler.cpp"/>
+        <FILE id="u2K1j4" name="resampler.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/resampler.hpp"/>
+        <FILE id="Vy4hTn" name="sink.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/sink.cpp"/>
+        <FILE id="Z4ldrz" name="sink.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/sink.hpp"/>
+        <FILE id="UxGOnO" name="source.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/source.cpp"/>
+        <FILE id="jXojYx" name="source.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/source.hpp"/>
+        <FILE id="Mzo03A" name="time_dll.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/time_dll.hpp"/>
+        <FILE id="yAD3tW" name="timer.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/timer.cpp"/>
+        <FILE id="UnT5vG" name="timer.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/timer.hpp"/>
+      </GROUP>
+      <GROUP id="{706F8492-7F2C-7CB2-22D1-6B33E331C7F3}" name="aoo_headers">
+        <GROUP id="{83C489DA-7A87-409B-A2FE-1170987FAE3E}" name="codec">
+          <FILE id="ZsT24J" name="aoo_opus.h" compile="0" resource="0" file="deps/aoo/include/aoo/codec/aoo_opus.h"/>
+          <FILE id="D6SBk3" name="aoo_pcm.h" compile="0" resource="0" file="deps/aoo/include/aoo/codec/aoo_pcm.h"/>
+        </GROUP>
+        <FILE id="L1wYew" name="aoo.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo.h"/>
+        <FILE id="bk8ZUm" name="aoo.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo.hpp"/>
+        <FILE id="xVOYnZ" name="aoo_net.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_net.h"/>
+        <FILE id="LQzrTg" name="aoo_net.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_net.hpp"/>
+        <FILE id="qdeTdq" name="aoo_types.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_types.h"/>
+      </GROUP>
+      <GROUP id="{E5F706B2-4287-6271-525F-3AF9794819E5}" name="md5">
+        <FILE id="u3nDxB" name="md5.c" compile="1" resource="0" file="deps/aoo/deps/md5/md5.c"/>
+        <FILE id="YrpSF5" name="md5.h" compile="0" resource="0" file="deps/aoo/deps/md5/md5.h"/>
+      </GROUP>
+      <GROUP id="{B2A0F540-6084-0260-BD4B-B814E10AF995}" name="osc">
+        <FILE id="wFN7K3" name="MessageMappingOscPacketListener.h" compile="0"
+              resource="0" file="deps/aoo/deps/oscpack/osc/MessageMappingOscPacketListener.h"/>
+        <FILE id="XUpRMH" name="OscException.h" compile="0" resource="0" file="deps/aoo/deps/oscpack/osc/OscException.h"/>
+        <FILE id="UtxvYv" name="OscHostEndianness.h" compile="0" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscHostEndianness.h"/>
+        <FILE id="cWXFdi" name="OscOutboundPacketStream.cpp" compile="1" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscOutboundPacketStream.cpp"/>
+        <FILE id="AEI2ml" name="OscOutboundPacketStream.h" compile="0" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscOutboundPacketStream.h"/>
+        <FILE id="ar5b1A" name="OscPacketListener.h" compile="0" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscPacketListener.h"/>
+        <FILE id="NjCxLk" name="OscPrintReceivedElements.cpp" compile="1" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscPrintReceivedElements.cpp"/>
+        <FILE id="lTGgXH" name="OscPrintReceivedElements.h" compile="0" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscPrintReceivedElements.h"/>
+        <FILE id="reSv6B" name="OscReceivedElements.cpp" compile="1" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscReceivedElements.cpp"/>
+        <FILE id="vHliXw" name="OscReceivedElements.h" compile="0" resource="0"
+              file="deps/aoo/deps/oscpack/osc/OscReceivedElements.h"/>
+        <FILE id="u4eopj" name="OscTypes.cpp" compile="1" resource="0" file="deps/aoo/deps/oscpack/osc/OscTypes.cpp"/>
+        <FILE id="BGk3W6" name="OscTypes.h" compile="0" resource="0" file="deps/aoo/deps/oscpack/osc/OscTypes.h"/>
+      </GROUP>
+    </GROUP>
+    <GROUP id="{6B741FCD-99B2-40BD-A3F4-7E43AB2C5C5C}" name="Source">
+      <FILE id="J7UDoD" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="USE_CODEC_OPUS=0">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"
+                       defines="LOGLEVEL=1"/>
+        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../juce5/modules"/>
+        <MODULEPATH id="juce_core" path="../juce5/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../juce5/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../juce5/modules"/>
+        <MODULEPATH id="juce_events" path="../juce5/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="USE_CODEC_OPUS=0">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"
+                       defines="LOGLEVEL=3"/>
+        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../juce5/modules"/>
+        <MODULEPATH id="juce_core" path="../juce5/modules"/>
+        <MODULEPATH id="juce_cryptography" path="../juce5/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../juce5/modules"/>
+        <MODULEPATH id="juce_events" path="../juce5/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+  </MODULES>
+  <LIVE_SETTINGS>
+    <OSX/>
+  </LIVE_SETTINGS>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_WASAPI="0" JUCE_DIRECTSOUND="0"
+               JUCE_ALSA="0"/>
+</JUCERPROJECT>
