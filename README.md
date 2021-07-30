@@ -29,6 +29,18 @@ And the resulting binary will be in build/aooserver_artefacts/Release/aooserver,
 which you can copy to a system binary location of your choice
 (/usr/local/bin, for example) if you want..
 
+## OR USE MAKE
+
+Or, if you just hate cmake and have issues with that.... I've temporarily
+added the jucer-generated build for linux back again, and you can just do
+this:
+
+    cd Builds/LinuxMakefile
+    make
+
+And the resulting executable will be in Builds/LinuxMakefile/build.
+
+
 # USAGE
 
 `aooserver -h` will give you the usage info, which is very basic:
