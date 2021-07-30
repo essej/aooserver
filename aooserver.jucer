@@ -89,9 +89,9 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="USE_CODEC_OPUS=0">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;../../deps/aoo/deps"
                        defines="LOGLEVEL=1"/>
-        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"/>
+        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;../../deps/aoo/deps"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
@@ -104,9 +104,9 @@
     </XCODE_MAC>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="USE_CODEC_OPUS=0">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"
+        <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;../../deps/aoo/deps"
                        defines="LOGLEVEL=3"/>
-        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo/lib&#10;../../deps/aoo/deps"/>
+        <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;&#10;../../deps/aoo/deps"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
