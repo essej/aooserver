@@ -182,8 +182,10 @@ public:
     void on_public_group_modified(group& grp);
     void on_public_group_removed(group& grp);
 
-    void add_blocked_address(const std::string & ipaddr) override;
+    void add_blocked_address(const std::string & ipaddr, bool public_only=false) override;
     bool is_address_blocked(const std::string & ipaddr) const override;
+    bool is_address_blocked_public(const std::string & ipaddr) const override;
+
 
     bool is_address_blocked(const ip_address & otheripaddr) const;
 
@@ -214,7 +216,12 @@ private:
     int waitpipe_[2];
 #endif
 
-    std::vector<ip_address> blocked_addrs_;
+    struct blockaddress_item {
+        blockaddress_item(const ip_address & ipaddr, bool publiconly) : addr(ipaddr), public_only(publiconly) {}
+        ip_address addr;
+        bool public_only;
+    };
+    std::vector<blockaddress_item> blocked_addrs_;
 
     void wait_for_event();
 

@@ -330,17 +330,18 @@ std::shared_ptr<user> server::find_user(const std::string& name)
     return nullptr;
 }
 
-void server::add_blocked_address(const std::string & ipaddr)
+void server::add_blocked_address(const std::string & ipaddr, bool public_only)
 {
     ip_address addr(ipaddr, 0);
-    blocked_addrs_.push_back(addr);
+    blockaddress_item item(addr, public_only);
+    blocked_addrs_.push_back(item);
 }
 
 bool server::is_address_blocked(const std::string & otherip) const
 {
     // match names only (ignore ports)
-    for (auto& addr : blocked_addrs_){
-        if (addr.name() == otherip){
+    for (auto& item : blocked_addrs_){
+        if (item.addr.name() == otherip && !item.public_only){
             return true;
         }
     }
@@ -348,11 +349,24 @@ bool server::is_address_blocked(const std::string & otherip) const
     return false;
 }
 
+bool server::is_address_blocked_public(const std::string & otherip) const
+{
+    // match names only (ignore ports)
+    for (auto& item : blocked_addrs_){
+        if (item.addr.name() == otherip && item.public_only){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 bool server::is_address_blocked(const ip_address & otheripaddr) const
 {
     // match names only (ignore ports)
-    for (auto& addr : blocked_addrs_){
-        if (addr.name() == otheripaddr.name()){
+    for (auto& item : blocked_addrs_){
+        if (item.addr.name() == otheripaddr.name() && !item.public_only){
             return true;
         }
     }
@@ -491,6 +505,14 @@ void server::on_user_left_group(user& usr, group& grp){
 }
 
 void server::on_user_wants_public_groups(user& usr){
+
+    // check if blocked for public groups
+    if (is_address_blocked_public(usr.endpoint->public_address.name())) {
+        usr.watch_public_groups = false;
+        LOG_WARNING("aoo_server: refused public group request for blocked address (IP: "
+                    << usr.endpoint->public_address.name() << ")");
+    }
+
     // 1) send all existing public groups to the user
     for (auto& grp : groups_){
         if (!grp->is_public) continue;
@@ -583,7 +605,7 @@ void server::wait_for_event(){
                                     << addr.name() << ", port: " << addr.port() << ")");
                     }
                     else {
-                        LOG_VERBOSE("aoo_server: refused blocked address (IP: "
+                        LOG_WARNING("aoo_server: refused blocked address (IP: "
                                     << addr.name() << ", port: " << addr.port() << ")");
                         socket_close(sock);
                     }
@@ -682,7 +704,7 @@ void server::wait_for_event(){
                     LOG_VERBOSE("aoo_server: accepted client (IP: "
                                 << addr.name() << ", port: " << addr.port() << ")");
                 } else {
-                    LOG_VERBOSE("aoo_server: refused blocked address (IP: "
+                    LOG_WARNING("aoo_server: refused blocked address (IP: "
                                 << addr.name() << ", port: " << addr.port() << ")");
                     socket_close(sock);
                 }
