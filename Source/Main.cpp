@@ -92,10 +92,22 @@ public:
         for (auto ip : blockList) {
             String trimmed = ip.trim();
             if (trimmed.isEmpty()) continue;
-            mServer->add_blocked_address(trimmed.toStdString());
 
-            String msg; msg << "AddBlockedIP," << trimmed;
-            logEvent(msg);
+            auto tokens = StringArray::fromTokens(trimmed, ",", "");
+
+            if (tokens.size() > 0) {
+                String ipaddr = tokens[0];
+                bool publiconly = false;
+
+                if (tokens.size() > 1) {
+                    publiconly = tokens[1].equalsIgnoreCase("public");
+                }
+
+                mServer->add_blocked_address(ipaddr.toStdString(), publiconly);
+
+                String msg; msg << "AddBlockedIP," << ipaddr << "," << (publiconly ? "public_only" : "all");
+                logEvent(msg);
+            }
         }
 
         String msg; msg << "ServerStart," << mPort;
