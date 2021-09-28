@@ -64,7 +64,13 @@ public:
         updateLogging();
     }
     
-    
+    void loadBlocklist(const String & blockfilename) {
+        File bfile = File::getCurrentWorkingDirectory().getChildFile(blockfilename);
+
+        auto contents = bfile.loadFileAsString();
+        blockList = StringArray::fromLines(contents);
+    }
+
     bool startServer() 
     {
         stopServer();
@@ -83,7 +89,15 @@ public:
             return false;
         }
         
-            
+        for (auto ip : blockList) {
+            String trimmed = ip.trim();
+            if (trimmed.isEmpty()) continue;
+            mServer->add_blocked_address(trimmed.toStdString());
+
+            String msg; msg << "AddBlockedIP," << trimmed;
+            logEvent(msg);
+        }
+
         String msg; msg << "ServerStart," << mPort;
         logEvent(msg);
         
@@ -284,7 +298,9 @@ protected:
     //std::unique_ptr<AooEventThread> mEventThread;
     
     std::unique_ptr<FileLogger> mLogger;
-    
+
+    StringArray blockList;
+
     aoo::net::iserver::pointer mServer;
 };
 
@@ -369,6 +385,15 @@ public:
         });
         
 
+        app.addCommand ({ "-b|--blocklist",
+            "-b|--blocklist filename",
+            "File containing IP addresses to block",
+            "File containing IP addresses to block",
+            [this] (const auto& args) {
+            }
+        });
+
+
         auto logdir = arglist.removeValueForOption("-l|--logdir"); 
         if (logdir.isNotEmpty()) {        
             server.setLoggingEnabled(true, logdir);
@@ -381,6 +406,12 @@ public:
                 server.setPort(port);
             }
         }
+
+        auto blockfilename = arglist.removeValueForOption("-b|--blocklist");
+        if (blockfilename.isNotEmpty()) {
+            server.loadBlocklist(blockfilename);
+        }
+
 
         if (arglist.containsOption("-h|--help")) {
             app.printCommandList(arglist);
