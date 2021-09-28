@@ -330,6 +330,37 @@ std::shared_ptr<user> server::find_user(const std::string& name)
     return nullptr;
 }
 
+void server::add_blocked_address(const std::string & ipaddr)
+{
+    ip_address addr(ipaddr, 0);
+    blocked_addrs_.push_back(addr);
+}
+
+bool server::is_address_blocked(const std::string & otherip) const
+{
+    // match names only (ignore ports)
+    for (auto& addr : blocked_addrs_){
+        if (addr.name() == otherip){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool server::is_address_blocked(const ip_address & otheripaddr) const
+{
+    // match names only (ignore ports)
+    for (auto& addr : blocked_addrs_){
+        if (addr.name() == otheripaddr.name()){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 std::shared_ptr<group> server::get_group(const std::string& name,
                                          const std::string& pwd,
                                          bool is_public,
@@ -545,9 +576,17 @@ void server::wait_for_event(){
                 ip_address addr;
                 auto sock = accept(tcpsocket_, (struct sockaddr *)&addr.address, &addr.length);
                 if (sock != INVALID_SOCKET){
-                    clients_.push_back(std::make_unique<client_endpoint>(*this, sock, addr));
-                    LOG_VERBOSE("aoo_server: accepted client (IP: "
-                                << addr.name() << ", port: " << addr.port() << ")");
+                    // check block list and refuse connection from blocked addresses
+                    if (!is_address_blocked(addr)) {
+                        clients_.push_back(std::make_unique<client_endpoint>(*this, sock, addr));
+                        LOG_VERBOSE("aoo_server: accepted client (IP: "
+                                    << addr.name() << ", port: " << addr.port() << ")");
+                    }
+                    else {
+                        LOG_VERBOSE("aoo_server: refused blocked address (IP: "
+                                    << addr.name() << ", port: " << addr.port() << ")");
+                        socket_close(sock);
+                    }
                 } else {
                     int err = socket_errno();
                     if (err != WSAEWOULDBLOCK){
@@ -638,9 +677,15 @@ void server::wait_for_event(){
             ip_address addr;
             int sock = accept(tcpsocket_, (struct sockaddr *)&addr.address, &addr.length);
             if (sock >= 0){
-                clients_.push_back(std::make_unique<client_endpoint>(*this, sock, addr));
-                LOG_VERBOSE("aoo_server: accepted client (IP: "
-                            << addr.name() << ", port: " << addr.port() << ")");
+                if (!is_address_blocked(addr)) {
+                    clients_.push_back(std::make_unique<client_endpoint>(*this, sock, addr));
+                    LOG_VERBOSE("aoo_server: accepted client (IP: "
+                                << addr.name() << ", port: " << addr.port() << ")");
+                } else {
+                    LOG_VERBOSE("aoo_server: refused blocked address (IP: "
+                                << addr.name() << ", port: " << addr.port() << ")");
+                    socket_close(sock);
+                }
             } else {
                 int err = socket_errno();
                 if (err != EWOULDBLOCK){

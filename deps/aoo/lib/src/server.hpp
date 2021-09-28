@@ -182,6 +182,11 @@ public:
     void on_public_group_modified(group& grp);
     void on_public_group_removed(group& grp);
 
+    void add_blocked_address(const std::string & ipaddr) override;
+    bool is_address_blocked(const std::string & ipaddr) const override;
+
+    bool is_address_blocked(const ip_address & otheripaddr) const;
+
 
 private:
     int tcpsocket_;
@@ -208,6 +213,8 @@ private:
 #else
     int waitpipe_[2];
 #endif
+
+    std::vector<ip_address> blocked_addrs_;
 
     void wait_for_event();
 

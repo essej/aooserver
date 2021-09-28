@@ -70,6 +70,12 @@ public:
     // get number of currently active users
     virtual int32_t get_user_count() const = 0;
 
+    // add IP address to refuse as a client connection
+    virtual void add_blocked_address(const std::string & ipaddr) = 0;
+
+    // check if IP address is blocked
+    virtual bool is_address_blocked(const std::string & ipaddr) const = 0;
+
 protected:
     ~iserver(){} // non-virtual!
 };
