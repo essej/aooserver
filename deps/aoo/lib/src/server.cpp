@@ -506,13 +506,6 @@ void server::on_user_left_group(user& usr, group& grp){
 
 void server::on_user_wants_public_groups(user& usr){
 
-    // check if blocked for public groups
-    if (is_address_blocked_public(usr.endpoint->public_address.name())) {
-        usr.watch_public_groups = false;
-        LOG_WARNING("aoo_server: refused public group request for blocked address (IP: "
-                    << usr.endpoint->public_address.name() << ")");
-    }
-
     // 1) send all existing public groups to the user
     for (auto& grp : groups_){
         if (!grp->is_public) continue;
@@ -1282,17 +1275,23 @@ void client_endpoint::handle_group_join(const osc::ReceivedMessage& msg)
 
     server::error err;
     if (user_){
-        auto grp = server_->get_group(name, password, is_public, err);
-        if (grp){
-            if (user_->add_group(grp)){
-                grp->add_user(user_);
-                server_->on_user_joined_group(*user_, *grp);
-                result = 1;
+        // do not allow public group blocked user to join/create public group
+        if (is_public && server_->is_address_blocked_public(user_->endpoint->public_address.name())) {
+            errmsg = "cannot create public group";
+        }
+        else {
+            auto grp = server_->get_group(name, password, is_public, err);
+            if (grp){
+                if (user_->add_group(grp)){
+                    grp->add_user(user_);
+                    server_->on_user_joined_group(*user_, *grp);
+                    result = 1;
+                } else {
+                    errmsg = "already a group member";
+                }
             } else {
-                errmsg = "already a group member";
+                errmsg = server::error_to_string(err);
             }
-        } else {
-            errmsg = server::error_to_string(err);
         }
     } else {
         errmsg = "not logged in";
@@ -1350,6 +1349,15 @@ void client_endpoint::handle_group_public(const osc::ReceivedMessage& msg)
 
     server::error err;
     if (user_){
+
+        // check if blocked for public groups
+
+        if (server_->is_address_blocked_public(user_->endpoint->public_address.name())) {
+            shouldWatch = false;
+            LOG_WARNING("aoo_server: refused public group request for blocked address (IP: "
+                        << user_->endpoint->public_address.name() << ")");
+        }
+
         // register interest in seeing public groups
         user_->watch_public_groups = shouldWatch;
 
