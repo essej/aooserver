@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/essej/aoo.git
 	branch = sononew
-	commit = e9055610a554d56acf0bb208ba0ac40d4cc040a9
+	commit = 735a1f8b80b6681a19fcd6256cfeb20841cb491b
 	parent = bc98915e9c91ac1ab8853c11ad60c929dbb6af6e
 	method = merge
-	cmdver = 0.4.1
+	cmdver = 0.4.3
