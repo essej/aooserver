@@ -174,9 +174,36 @@ public:
         const ScopedLock sl (mLock); 
         if (mServer) {
             mServer->poll_events();
+
+            possiblyCheckDataRate();
         }
     }
-    
+
+    void possiblyCheckDataRate() {
+        // data rate logging
+        const double nowtime = Time::getMillisecondCounterHiRes() * 1e-3;
+        if (nowtime > lastCheckTimestamp + dataRateLogInterval) {
+            auto incoming = mServer->get_incoming_udp_bytes();
+            auto outgoing = mServer->get_outgoing_udp_bytes();
+
+            double deltatime = nowtime - lastCheckTimestamp;
+            auto inrate = (incoming - lastIncomingBytes) / deltatime;
+            auto outrate = (outgoing - lastOutgoingBytes) / deltatime;
+
+            bool iszero = inrate == 0.0 && outrate == 0.0;
+
+            if (!iszero || !lastRateZero) {
+                String msg; msg << "UDPDataRate_In_Out," << inrate << "," << outrate;
+                logEvent(msg);
+            }
+
+            lastCheckTimestamp = nowtime;
+            lastOutgoingBytes = outgoing;
+            lastIncomingBytes = incoming;
+            lastRateZero = iszero;
+        }
+    }
+
     int32_t handleServerEvent(const aoo_event *event, int32_t level)
     {
         switch (event->type){
@@ -237,7 +264,8 @@ public:
                 logEvent(msg);
                 break;
         }
-    
+
+        return AOO_OK;
     }
     
     
@@ -286,6 +314,12 @@ protected:
     std::unique_ptr<FileLogger> mLogger;
     
     aoo::net::server::pointer mServer;
+
+    uint64_t lastIncomingBytes = 0;
+    uint64_t lastOutgoingBytes = 0;
+    double   lastCheckTimestamp = 0.0;
+    const double dataRateLogInterval = 10.0;
+    bool lastRateZero = false;
 };
 
 
@@ -431,12 +465,10 @@ public:
         if (keyboardBreakOccurred) {
             quit();
         }
-        server.handleEvents(); 
+        server.handleEvents();
     }
 
 
-    
-    
     AooServer server;
 
 };
