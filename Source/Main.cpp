@@ -91,6 +91,8 @@ public:
             
         String msg; msg << "ServerStart," << mPort;
         logEvent(msg);
+
+        startTimeMs = Time::getMillisecondCounterHiRes();
         
         if (mServer) {
             mServerThread = std::make_unique<AooServerThread>(this);    
@@ -126,6 +128,25 @@ public:
             
             String msg; msg << "ServerStop";
             logEvent(msg);
+
+            double runTime = (Time::getMillisecondCounterHiRes() - startTimeMs) * 1e-3;
+            runTime = runTime < 0.1 ? 0.1 : runTime;
+            int hours = (int) (runTime/3600.0);
+            int minutes = (int) (runTime/60.0) % 60;
+            float secs =  fmodf(runTime, 60.0);
+
+            msg.clear();
+            msg << String::formatted("runtime duration: %02d:%02d:%02d", hours, minutes, (int)secs) << "\n";
+            msg << "total traffic: " << totIncomingBytes / 1048576.f << " MB in, " << totOutgoingBytes / 1048576.f << " MB out" << "\n";
+            msg << "average bandwidth: " << totIncomingBytes / runTime << " BPS in, " << totOutgoingBytes / runTime << " BPS out" << "\n";
+            msg << "peak bandwidth: " << peakIncomingRate  << " BPS in, " << peakOutgoingRate  << " BPS out" << "\n";
+
+            if (mLogger) {
+                mLogger->logMessage(msg);
+            }
+            else {
+                cerr << msg << endl;
+            }
         }
     }
     
@@ -195,11 +216,19 @@ public:
             if (!iszero || !lastRateZero) {
                 String msg; msg << "UDPDataRate_In_Out," << inrate << "," << outrate;
                 logEvent(msg);
+
+                peakOutgoingRate = outrate > peakOutgoingRate ? outrate : peakOutgoingRate;
+                peakIncomingRate = inrate > peakIncomingRate ? inrate : peakIncomingRate;
             }
 
+            totOutgoingBytes += outgoing;
+            totIncomingBytes += incoming;
+
             lastCheckTimestamp = nowtime;
+            
             lastOutgoingBytes = outgoing;
             lastIncomingBytes = incoming;
+            
             lastRateZero = iszero;
         }
     }
@@ -315,23 +344,32 @@ protected:
     
     aoo::net::server::pointer mServer;
 
+    uint64_t totIncomingBytes = 0;
+    uint64_t totOutgoingBytes = 0;
+    uint64_t peakIncomingRate = 0;
+    uint64_t peakOutgoingRate = 0;
+
     uint64_t lastIncomingBytes = 0;
     uint64_t lastOutgoingBytes = 0;
     double   lastCheckTimestamp = 0.0;
     const double dataRateLogInterval = 10.0;
     bool lastRateZero = false;
+    double startTimeMs = 0.0;
+
 };
 
 
 
 void AooServerThread::run()  {
 
+    double startTimeMs = Time::getMillisecondCounterHiRes();
+
     while (!threadShouldExit()) {
      
         mServer->runServer();
         
     }
-    
+   
     DBG("Server thread finishing");
 }
 
