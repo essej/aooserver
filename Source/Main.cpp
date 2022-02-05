@@ -10,7 +10,10 @@
 
 #include "JuceHeader.h"
 
-#include "aoo/aoo_net.hpp"
+#include "aoo/aoo_net.h"
+#include "aoo/aoo_server.hpp"
+#include "common/net_utils.hpp"
+
 #include <unistd.h>
 
 #include <iostream>
@@ -18,38 +21,38 @@
 
 using namespace std;
 
-class AooServer;
+class AooConsoleServer;
 
 class AooServerThread : public juce::Thread
 {
 public:
-    AooServerThread(AooServer * server) : Thread("AooServerThread") , mServer(server) 
+    AooServerThread(AooConsoleServer * server) : Thread("AooServerThread") , mServer(server)
     {}
     
     void run() override;
     
-    AooServer * mServer;
+    AooConsoleServer * mServer;
     
 };
 
 class AooEventThread : public juce::Thread
 {
 public:
-    AooEventThread(AooServer * server) : Thread("AooEventThread") , mServer(server) 
+    AooEventThread(AooConsoleServer * server) : Thread("AooEventThread") , mServer(server)
     {}
     
     void run() override;
     
 protected:
     
-    AooServer * mServer;
+    AooConsoleServer * mServer;
 };
 
 
-class AooServer
+class AooConsoleServer
 {
 public:
-    AooServer(int port=10998) : mPort(port) {
+    AooConsoleServer(int port=10998) : mPort(port) {
         
     }
     
@@ -73,8 +76,8 @@ public:
 
         int32_t err = 0;
 
-        mServer.reset(aoo::net::server::create(mPort, 0, &err));
-        
+        mServer = AooServer::create(mPort, 0, &err);
+
         if (!mServer || err != 0) {
             String errstr;
             errstr << "ServerStartError," << err;
@@ -83,10 +86,10 @@ public:
             return false;
         }
         
-        mServer->set_eventhandler(
-            [](void *user, const aoo_event *event, int32_t level) {
-                static_cast<AooServer*>(user)->handleServerEvent(event, level);
-            }, this, AOO_EVENT_CALLBACK);
+        mServer->setEventHandler(
+            [](void *user, const AooEvent *event, int32_t level) {
+                static_cast<AooConsoleServer*>(user)->handleServerEvent(event, level);
+            }, this, kAooEventModeCallback);
         
             
         String msg; msg << "ServerStart," << mPort;
@@ -157,7 +160,7 @@ public:
         }
     }
     
-    virtual ~AooServer() {
+    virtual ~AooConsoleServer() {
         //DBG("Destructor");
 
         stopServer();
@@ -172,8 +175,8 @@ public:
         String message;
         message << timestamp << ",";
         if (mServer) {
-            message << mServer->get_group_count() << "," 
-                    << mServer->get_user_count() << ",";
+            message << mServer->getGroupCount() << ","
+                    << mServer->getUserCount() << ",";
         }
         else {
             message << "0,0,"; 
@@ -194,7 +197,7 @@ public:
     void handleEvents() {
         const ScopedLock sl (mLock); 
         if (mServer) {
-            mServer->poll_events();
+            mServer->pollEvents();
 
             possiblyCheckDataRate();
         }
@@ -204,8 +207,8 @@ public:
         // data rate logging
         const double nowtime = Time::getMillisecondCounterHiRes() * 1e-3;
         if (nowtime > lastCheckTimestamp + dataRateLogInterval) {
-            auto incoming = mServer->get_incoming_udp_bytes();
-            auto outgoing = mServer->get_outgoing_udp_bytes();
+            auto incoming = mServer->getIncomingUdpBytes();
+            auto outgoing = mServer->getOutgoingUdpBytes();
 
             double deltatime = nowtime - lastCheckTimestamp;
             auto inrate = (incoming - lastIncomingBytes) / deltatime;
@@ -233,56 +236,56 @@ public:
         }
     }
 
-    int32_t handleServerEvent(const aoo_event *event, int32_t level)
+    int32_t handleServerEvent(const AooEvent *event, int32_t level)
     {
         switch (event->type){
-            case AOO_NET_USER_JOIN_EVENT:
+            case kAooNetEventUserJoin:
             {
-                auto *e = (const aoo_net_user_event *)event;
+                auto *e = (const AooNetEventUser *)event;
 
                 String msg;
-                msg << "UserJoin," << e->user_name;
+                msg << "UserJoin," << e->userName;
                 logEvent(msg);
                 
                 break;
             }
-            case AOO_NET_USER_LEAVE_EVENT:
+            case kAooNetEventUserLeave:
             {
-                auto *e = (const aoo_net_user_event *)event;
+                auto *e = (const AooNetEventUser *)event;
 
                 String msg;
-                msg << "UserLeave," << e->user_name;                    
+                msg << "UserLeave," << e->userName;
                 logEvent(msg);
                 
                 
                 break;
             }
-            case AOO_NET_GROUP_JOIN_EVENT:
+            case kAooNetEventUserGroupJoin:
             {
-                auto *e = (const aoo_net_group_event *)event;
+                auto *e = (const AooNetEventUserGroup *)event;
                 
                 String msg;
-                msg << "GroupJoin," << e->group_name << "," << e->user_name;
+                msg << "GroupJoin," << e->groupName << "," << e->userName;
                 logEvent(msg);
                 
                 break;
             }
-            case AOO_NET_GROUP_LEAVE_EVENT:
+            case kAooNetEventUserGroupLeave:
             {
-                auto *e = (const aoo_net_group_event *)event;
+                auto *e = (const AooNetEventUserGroup *)event;
 
                 String msg;
-                msg << "GroupLeave," << e->group_name << "," << e->user_name;
+                msg << "GroupLeave," << e->groupName << "," << e->userName;
                 logEvent(msg);
                 
                 break;
             }
-            case AOO_NET_ERROR_EVENT:
+            case kAooNetEventError:
             {
-                auto *e = (const aoo_net_error_event *)event;
+                auto *e = (const AooNetEventError *)event;
                 
                 String msg;
-                msg << "Error," << e->error_message;
+                msg << "Error," << e->errorMessage;
                 logEvent(msg);
                 
                 break;
@@ -294,7 +297,7 @@ public:
                 break;
         }
 
-        return AOO_OK;
+        return kAooOk;
     }
     
     
@@ -342,7 +345,7 @@ protected:
     
     std::unique_ptr<FileLogger> mLogger;
     
-    aoo::net::server::pointer mServer;
+    AooServer::Ptr mServer;
 
     uint64_t totIncomingBytes = 0;
     uint64_t totOutgoingBytes = 0;
@@ -507,7 +510,7 @@ public:
     }
 
 
-    AooServer server;
+    AooConsoleServer server;
 
 };
 

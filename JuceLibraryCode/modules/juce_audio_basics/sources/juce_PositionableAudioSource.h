@@ -76,7 +76,7 @@ public:
     virtual void setLoopRange (int64 loopStart, int64 loopLength) { ignoreUnused(loopStart); ignoreUnused(loopLength); }
     
     /** Returns the position where the loop playback starts.  */
-    virtual void getLoopRange(int64 & loopStart, int64 & loopLength) const = 0;
+    virtual void getLoopRange(int64 & loopStart, int64 & loopLength) const  { };
 
 };
 

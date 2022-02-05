@@ -69,7 +69,6 @@ endif
 
 OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/net_utils_222170b9.o \
-  $(JUCE_OBJDIR)/ntp_5f9eded4.o \
   $(JUCE_OBJDIR)/sync_a38ae8bb.o \
   $(JUCE_OBJDIR)/time_bb6fb7ed.o \
   $(JUCE_OBJDIR)/pcm_77442024.o \
@@ -110,11 +109,6 @@ $(JUCE_OUTDIR)/$(JUCE_TARGET_CONSOLEAPP) : $(OBJECTS_CONSOLEAPP) $(RESOURCES)
 $(JUCE_OBJDIR)/net_utils_222170b9.o: ../../deps/aoo/common/net_utils.cpp
 	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
 	@echo "Compiling net_utils.cpp"
-	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/ntp_5f9eded4.o: ../../deps/aoo/common/ntp.cpp
-	-$(V_AT)mkdir -p $(JUCE_OBJDIR)
-	@echo "Compiling ntp.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/sync_a38ae8bb.o: ../../deps/aoo/common/sync.cpp

@@ -4,16 +4,15 @@
               jucerFormatVersion="1">
   <MAINGROUP id="GRsEDg" name="aooserver">
     <GROUP id="{24D97FFE-8626-16CD-2BA0-9F94E04385F6}" name="aoo">
-      <GROUP id="{36606E28-162C-C53B-EFE2-5720A705ADC2}" name="common">
-        <FILE id="AxGZ7w" name="lockfree.hpp" compile="0" resource="0" file="deps/aoo/common/lockfree.hpp"/>
-        <FILE id="Ybupk0" name="net_utils.cpp" compile="1" resource="0" file="deps/aoo/common/net_utils.cpp"/>
-        <FILE id="kAFanP" name="net_utils.hpp" compile="0" resource="0" file="deps/aoo/common/net_utils.hpp"/>
-        <FILE id="i0XI6b" name="ntp.cpp" compile="1" resource="0" file="deps/aoo/common/ntp.cpp"/>
-        <FILE id="UbuCoe" name="sync.cpp" compile="1" resource="0" file="deps/aoo/common/sync.cpp"/>
-        <FILE id="IjKvmx" name="sync.hpp" compile="0" resource="0" file="deps/aoo/common/sync.hpp"/>
-        <FILE id="pjbHTw" name="time.cpp" compile="1" resource="0" file="deps/aoo/common/time.cpp"/>
-        <FILE id="Kv1DGA" name="time.hpp" compile="0" resource="0" file="deps/aoo/common/time.hpp"/>
-        <FILE id="h2DMgw" name="utils.hpp" compile="0" resource="0" file="deps/aoo/common/utils.hpp"/>
+      <GROUP id="{A92AA161-9EF4-05C3-039C-ACC2AD385B40}" name="common">
+        <FILE id="rLIgNf" name="lockfree.hpp" compile="0" resource="0" file="deps/aoo/common/lockfree.hpp"/>
+        <FILE id="vJNP1R" name="net_utils.cpp" compile="1" resource="0" file="deps/aoo/common/net_utils.cpp"/>
+        <FILE id="ivmDqM" name="net_utils.hpp" compile="0" resource="0" file="deps/aoo/common/net_utils.hpp"/>
+        <FILE id="TAlktI" name="sync.cpp" compile="1" resource="0" file="deps/aoo/common/sync.cpp"/>
+        <FILE id="tJxfkn" name="sync.hpp" compile="0" resource="0" file="deps/aoo/common/sync.hpp"/>
+        <FILE id="WhL18b" name="time.cpp" compile="1" resource="0" file="deps/aoo/common/time.cpp"/>
+        <FILE id="zq58lo" name="time.hpp" compile="0" resource="0" file="deps/aoo/common/time.hpp"/>
+        <FILE id="ftnrFz" name="utils.hpp" compile="0" resource="0" file="deps/aoo/common/utils.hpp"/>
       </GROUP>
       <GROUP id="{2DF67E37-6AF9-3BAB-4A3C-BDD62DA1FF2B}" name="aoo_source">
         <GROUP id="{1ECDA15A-1B25-FF6D-9AD8-30195F800B33}" name="codec">
@@ -23,7 +22,6 @@
         <GROUP id="{8447ED7B-5B31-AED8-8FC0-7DAD2598FFFC}" name="net">
           <FILE id="GrmGcD" name="client.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/client.cpp"/>
           <FILE id="a0ZA7z" name="client.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/client.hpp"/>
-          <FILE id="Sv27vZ" name="commands.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/commands.hpp"/>
           <FILE id="vtmXEb" name="server.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/server.cpp"/>
           <FILE id="KriqdL" name="server.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/server.hpp"/>
           <FILE id="eOUPgE" name="SLIP.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/SLIP.hpp"/>
@@ -31,7 +29,6 @@
         <FILE id="rLFw6C" name="aoo.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/aoo.cpp"/>
         <FILE id="rCz8co" name="buffer.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/buffer.cpp"/>
         <FILE id="aibm74" name="buffer.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/buffer.hpp"/>
-        <FILE id="aWr54z" name="codec.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/codec.hpp"/>
         <FILE id="YKs5sj" name="imp.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/imp.hpp"/>
         <FILE id="VwnYGd" name="resampler.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/resampler.cpp"/>
         <FILE id="u2K1j4" name="resampler.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/resampler.hpp"/>
@@ -49,10 +46,19 @@
           <FILE id="D6SBk3" name="aoo_pcm.h" compile="0" resource="0" file="deps/aoo/include/aoo/codec/aoo_pcm.h"/>
         </GROUP>
         <FILE id="L1wYew" name="aoo.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo.h"/>
-        <FILE id="bk8ZUm" name="aoo.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo.hpp"/>
+        <FILE id="OFilsP" name="aoo_client.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_client.h"/>
+        <FILE id="nAtARN" name="aoo_client.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_client.hpp"/>
+        <FILE id="hOfhjQ" name="aoo_codec.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_codec.h"/>
+        <FILE id="Lh75Aj" name="aoo_controls.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_controls.h"/>
+        <FILE id="eltJ5I" name="aoo_defines.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_defines.h"/>
+        <FILE id="gFnfNx" name="aoo_events.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_events.h"/>
         <FILE id="xVOYnZ" name="aoo_net.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_net.h"/>
-        <FILE id="LQzrTg" name="aoo_net.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_net.hpp"/>
-        <FILE id="qdeTdq" name="aoo_types.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_types.h"/>
+        <FILE id="dqQ11M" name="aoo_server.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_server.h"/>
+        <FILE id="PBn5Qr" name="aoo_server.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_server.hpp"/>
+        <FILE id="f1pCKF" name="aoo_sink.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_sink.h"/>
+        <FILE id="AHu3K0" name="aoo_sink.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_sink.hpp"/>
+        <FILE id="Vueqr2" name="aoo_source.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_source.h"/>
+        <FILE id="AyAUbc" name="aoo_source.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_source.hpp"/>
       </GROUP>
       <GROUP id="{E5F706B2-4287-6271-525F-3AF9794819E5}" name="md5">
         <FILE id="u3nDxB" name="md5.c" compile="1" resource="0" file="deps/aoo/deps/md5/md5.c"/>
