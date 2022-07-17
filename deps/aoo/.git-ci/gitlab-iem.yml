@@ -1,7 +1,7 @@
 ### global variables
 
 variables:
-  PD_VERSION: 0.51-1
+  PD_VERSION: 0.52-2
 # PD_PATH: only set on Windows
   SC_PATH: /tmp/supercollider
 
@@ -19,10 +19,15 @@ variables:
 .script:cmake: &script_cmake
   - prefix="$(pwd)/build/${CI_JOB_NAME}"
   - rm -rf build
-  - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+  - cmake -H. -Bbuild -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="${OSX_ARCHITECTURES}"
     -DCMAKE_INSTALL_PREFIX="$prefix/aoo" -DAOO_STATIC_LIBS=${STATIC_LIBS} -DAOO_SYSTEM_OPUS=OFF
     ${PD_EXTENSION:+-DPD_EXTENSION=${PD_EXTENSION}} -DPD_DIR="${PD_PATH}" -DPD_INSTALLDIR="$prefix/pd"
     -DSC_SUPERNOVA=${SUPERNOVA} -DSC_INCLUDEDIR="${SC_PATH}" -DSC_INSTALLDIR="$prefix/sc"
+    -DCMAKE_DEPENDS_USE_COMPILER=OFF
+   # NOTE: by default, CMake 3.21+ uses the compiler to obtain dependencies for makefiles ('compiler_depends.make').
+   # For some reason, on the 'Hopper' runner that file would contain bogus file paths which will cause the following
+   # invocation of 'cmake --build ./build --target install/strip' to fail with 'multiple target patterns'.
+   # As a workaround, we force the legacy behavior with -DCMAKE_DEPENDS_USE_COMPILER=OFF.
 
 ### build snippets
 .script:make: &script_make
@@ -83,13 +88,15 @@ variables:
 .build:macos: &build_macos
   extends: .build:script
   tags:
-     - osx
+     - bigsur
   variables:
+    OSX_ARCHITECTURES: "arm64;x86_64"
     SUPERNOVA: 1
+    PD_EXTENSION: d_fat
   before_script:
-    - wget -q -O Pd.tgz http://msp.ucsd.edu/Software/pd-${PD_VERSION}.mac.tar.gz
+    - wget -q -O Pd.tgz http://msp.ucsd.edu/Software/pd-${PD_VERSION}-macosx7.mac.tar.gz
     - rm -rf /Applications/Pd*.app/
-    - tar xvf Pd.tgz -C /Applications/
+    - tar -xf Pd.tgz -C /Applications/
     - rm -f Pd.tgz
     - *script_deps
     - *script_cmake
@@ -104,8 +111,9 @@ variables:
     STATIC_LIBS: 1
     PD_PATH: /tmp/pd
     PD_URL: http://msp.ucsd.edu/Software/pd-${PD_VERSION}-i386.msw.zip
+    CMAKE: mingw-w64-i686-cmake
   before_script:
-    - pacman --noconfirm -S cmake
+    - pacman --noconfirm -S ${CMAKE}
     - wget -q -O Pd.zip ${PD_URL}
 # install locally to avoid hassles with Windows vs. Unix file paths.
     - rm -rf "${PD_PATH}"; mkdir -p "${PD_PATH}"
@@ -121,6 +129,7 @@ variables:
     IEMCI_CONFIGURATIONS: mingw64
     PD_EXTENSION: m_amd64
     PD_URL: http://msp.ucsd.edu/Software/pd-${PD_VERSION}.msw.zip
+    CMAKE: mingw-w64-x86_64-cmake
 
 ### job templates
 .Linux:

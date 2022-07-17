@@ -16,21 +16,20 @@ typedef struct AooClient AooClient;
 
 /** \brief create a new AOO source instance
  *
- * \param address local UDP socket address
- * \param addrlen socket address length
+ * \param udpSocket bound UDP socket handle
  * \param flags optional flags
  * \param[out] err error code on failure
  * \return new AooClient instance on success; `NULL` on failure
  */
 AOO_API AooClient * AOO_CALL AooClient_new(
-        const void *address, AooAddrSize addrlen,
-        AooFlag flags, AooError *err);
+        AooSocket udpSocket, AooFlag flags, AooError *err);
 
 /** \brief destroy AOO client */
 AOO_API void AOO_CALL AooClient_free(AooClient *client);
 
 /** \copydoc AooClient::run() */
-AOO_API AooError AOO_CALL AooClient_run(AooClient *client);
+AOO_API AooError AOO_CALL AooClient_run(
+        AooClient *client, AooBool nonBlocking);
 
 /** \copydoc AooClient::quit() */
 AOO_API AooError AOO_CALL AooClient_quit(AooClient *client);
@@ -51,20 +50,68 @@ AOO_API AooError AOO_CALL AooClient_addSink(
 AOO_API AooError AOO_CALL AooClient_removeSink(
         AooClient *client, struct AooSink *sink);
 
-/** \copydoc AooClient::getPeerByName() */
-AOO_API AooError AOO_CALL AooClient_getPeerByName(
+/** \copydoc AooClient::connect() */
+AOO_API AooError AooClient_connect(
+        AooClient *client,
+        const AooChar *hostName, AooInt32 port, const AooChar *password,
+        const AooDataView *metadata, AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::disconnect() */
+AOO_API AooError AooClient_disconnect(
+        AooClient *client, AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::joinGroup() */
+AOO_API AooError AooClient_joinGroup(
+        AooClient *client,
+        const AooChar *groupName, const AooChar *groupPwd,
+        const AooDataView *groupMetadata,
+        const AooChar *userName, const AooChar *userPwd,
+        const AooDataView *userMetadata,
+        const AooIpEndpoint *relayAddress,
+        AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::leaveGroup() */
+AOO_API AooError AooClient_leaveGroup(
+        AooClient *client, AooId group,
+        AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::updateGroup() */
+AOO_API AooError AOO_CALL AooClient_updateGroup(
+        AooClient *client,
+        AooId group, const AooDataView *metadata,
+        AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::updateUser() */
+AOO_API AooError AOO_CALL AooClient_updateUser(
+        AooClient *client, AooId group,
+        AooId user, const AooDataView *metadata,
+        AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::customRequest() */
+AOO_API AooError AOO_CALL AooClient_customRequest(
+        AooClient *client, const AooDataView *data, AooFlag flags,
+        AooNetCallback cb, void *context);
+
+/** \copydoc AooClient::findPeerByName() */
+AOO_API AooError AOO_CALL AooClient_findPeerByName(
         AooClient *client, const AooChar *group, const AooChar *user,
-        void *address, AooAddrSize *addrlen);
+        AooId *groupId, AooId *userId, void *address, AooAddrSize *addrlen);
 
-/** \copydoc AooClient::sendRequest() */
-AOO_API AooError AOO_CALL AooClient_sendRequest(
-        AooClient *client, AooNetRequestType request, void *data,
-        AooNetCallback callback, void *user);
+/** \copydoc AooClient::findPeerByAddress() */
+AOO_API AooError AOO_CALL AooClient_findPeerByAddress(
+        AooClient *client, const void *address, AooAddrSize addrlen,
+        AooId *groupId, AooId *userId);
 
-/** \copydoc AooClient::sendPeerMessage() */
-AOO_API AooError AOO_CALL AooClient_sendPeerMessage(
-        AooClient *client, const AooByte *data, AooInt32 size,
-        const void *address, AooAddrSize addrlen, AooFlag flags);
+/** \copydoc AooClient::getPeerName() */
+AOO_API AooError AOO_CALL AooClient_getPeerName(
+        AooClient *client, AooId group, AooId user,
+        AooChar *groupNameBuffer, AooSize *groupNameSize,
+        AooChar *userNameBuffer, AooSize *userNameSize);
+
+/** \copydoc AooClient::sendMessage() */
+AOO_API AooError AOO_CALL AooClient_sendMessage(
+        AooClient *client, AooId group, AooId user,
+        const AooDataView *msg, AooNtpTime timeStamp, AooFlag flags);
 
 /** \copydoc AooClient::handleMessage() */
 AOO_API AooError AOO_CALL AooClient_handleMessage(
@@ -77,13 +124,18 @@ AOO_API AooError AOO_CALL AooClient_send(
 
 /** \copydoc AooClient::setEventHandler() */
 AOO_API AooError AOO_CALL AooClient_setEventHandler(
-        AooClient *sink, AooEventHandler fn, void *user, AooEventMode mode);
+        AooClient *client, AooEventHandler fn, void *user, AooEventMode mode);
 
 /** \copydoc AooClient::eventsAvailable() */
 AOO_API AooBool AOO_CALL AooClient_eventsAvailable(AooClient *client);
 
 /** \copydoc AooClient::pollEvents() */
 AOO_API AooError AOO_CALL AooClient_pollEvents(AooClient *client);
+
+/** \copydoc AooClient::sendRequest() */
+AOO_API AooError AOO_CALL AooClient_sendRequest(
+        AooClient *client, const AooNetRequest *request,
+        AooNetCallback callback, void *user, AooFlag flags);
 
 /** \copydoc AooClient::control */
 AOO_API AooError AOO_CALL AooClient_control(
@@ -93,52 +145,20 @@ AOO_API AooError AOO_CALL AooClient_control(
 /*         type-safe control functions        */
 /*--------------------------------------------*/
 
-/* (empty) */
+/** \copydoc AooClient::setBinaryMsg() */
+AOO_INLINE AooError AooClient_setBinaryMsg(AooClient *client, AooBool b)
+{
+    return AooClient_control(client, kAooCtlSetBinaryClientMsg, 0, AOO_ARG(b));
+}
+
+/** \copydoc AooClient::getBinaryMsg() */
+AOO_INLINE AooError AooClient_getBinaryMsg(AooClient *client, AooBool *b)
+{
+    return AooClient_control(client, kAooCtlGetBinaryClientMsg, 0, AOO_ARG(*b));
+}
 
 /*--------------------------------------------*/
 /*         type-safe request functions        */
 /*--------------------------------------------*/
 
-/** \copydoc AooClient::connect() */
-AOO_INLINE AooError AooClient_connect(
-        AooClient *client, const AooChar *hostName, AooInt32 port,
-        const AooChar *userName, const AooChar *userPwd, AooNetCallback cb, void *user)
-{
-    AooNetRequestConnect data;
-    data.hostName = hostName;
-    data.port = port;
-    data.userName = userName;
-    data.userPwd = userPwd;
-    data.flags = 0;
-    return AooClient_sendRequest(client, kAooNetRequestConnect, &data, cb, user);
-}
-
-/** \copydoc AooClient::disconnect() */
-AOO_INLINE AooError AooClient_disconnect(
-        AooClient *client, AooNetCallback cb, void *user)
-{
-    return AooClient_sendRequest(client, kAooNetRequestDisconnect, NULL, cb, user);
-}
-
-/** \copydoc AooClient::joinGroup() */
-AOO_INLINE AooError AooClient_joinGroup(
-        AooClient *client, const AooChar *groupName, const AooChar *groupPwd,
-        AooNetCallback cb, void *user)
-{
-    AooNetRequestJoinGroup data;
-    data.groupName = groupName;
-    data.groupPwd = groupPwd;
-    data.flags = 0;
-    return AooClient_sendRequest(client, kAooNetRequestJoinGroup, &data, cb, user);
-}
-
-/** \copydoc AooClient::leaveGroup() */
-AOO_INLINE AooError AooClient_leaveGroup(
-        AooClient *client, const AooChar *groupName, AooNetCallback cb, void *user)
-{
-    AooNetRequestLeaveGroup data;
-    data.groupName = groupName;
-    data.groupPwd = NULL;
-    data.flags = 0;
-    return AooClient_sendRequest(client, kAooNetRequestLeaveGroup, &data, cb, user);
-}
+/* (empty) */

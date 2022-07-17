@@ -13,6 +13,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <inttypes.h>
+
+/* check for C++11
+ * NB: MSVC does not correctly set __cplusplus by default! */
+#if defined(__cplusplus) && (__cplusplus >= 201103L || ((defined(_MSC_VER) && _MSC_VER >= 1900)))
+    #define AOO_HAVE_CXX11 1
+#else
+    #define AOO_HAVE_CXX11 0
+#endif
+
+
 #if defined(__cplusplus)
 # define AOO_INLINE inline
 #else
@@ -97,6 +108,10 @@ AOO_PACK_BEGIN
 # define AOO_MAX_PACKET_SIZE 4096
 #endif
 
+#if AOO_PACKET_SIZE > AOO_MAX_PACKET_SIZE
+#error "AOO_PACKET_SIZE must exceed AOO_MAX_PACKET_SIZE"
+#endif
+
 /** \brief debug memory usage */
 #ifndef AOO_DEBUG_MEMORY
 # define AOO_DEBUG_MEMORY 0
@@ -174,9 +189,9 @@ typedef AooInt32 AooId;
 
 /** \brief invalid AooId constant */
 #define kAooIdInvalid -1
-/** \brief largest valid AooId */
-#define kAooIdMin 0
 /** \brief smallest valid AooId */
+#define kAooIdMin 0
+/** \brief largest valid AooId */
 #define kAooIdMax INT32_MAX
 
 /** \brief flag/bit map type */
@@ -184,6 +199,9 @@ typedef AooUInt32 AooFlag;
 
 /** \brief NTP time stamp */
 typedef AooUInt64 AooNtpTime;
+
+/** \brief constant representing the current time */
+#define kAooNtpTimeNow 1
 
 /** \brief time point/interval in seconds */
 typedef double AooSeconds;
@@ -193,6 +211,9 @@ typedef double AooSampleRate;
 
 /** \brief AOO control type */
 typedef AooInt32 AooCtl;
+
+/** \brief AOO socket handle type */
+typedef AooInt32 AooSocket;
 
 /*---------------- error codes ----------------*/
 
@@ -214,7 +235,11 @@ enum AooErrorCodes
      * no need to call `send()` resp. notify the send thread */
     kAooErrorIdle,
     /** out of memory */
-    kAooErrorOutOfMemory
+    kAooErrorOutOfMemory,
+    /** resource not found */
+    kAooErrorNotFound,
+    /** insufficient buffer size */
+    kAooErrorInsufficientBuffer
 };
 
 /** \brief alias for success result */
@@ -280,6 +305,12 @@ typedef void (AOO_CALL *AooEventHandler)(
 /** \brief socket address size type */
 typedef AooUInt32 AooAddrSize;
 
+typedef struct AooSockAddr
+{
+    const void *data;
+    AooAddrSize size;
+} AooSockAddr;
+
 /** \brief AOO endpoint */
 typedef struct AooEndpoint
 {
@@ -291,10 +322,17 @@ typedef struct AooEndpoint
     AooId id;
 } AooEndpoint;
 
+/* TODO do we need this? */
 enum AooEndpointFlags
 {
     kAooEndpointRelay = 0x01
 };
+
+typedef struct AooIpEndpoint
+{
+    const AooChar *hostName;
+    AooInt32 port;
+} AooIpEndpoint;
 
 /** \brief send function
  *
@@ -313,6 +351,7 @@ typedef AooInt32 (AOO_CALL *AooSendFunc)(
         /** the socket address length */
         AooAddrSize addrlen,
         /** optional flags */
+        /* TODO do we need this? */
         AooFlag flags
 );
 
@@ -336,8 +375,9 @@ enum AooMsgTypes
     /** AOO peer */
     kAooTypePeer,
     /** relayed message */
-    kAooTypeRelay
+    kAooTypeRelay,
 #endif
+    kAooTypeSentinel
 };
 
 /*------------- AOO data view ---------------*/
@@ -356,7 +396,7 @@ typedef struct AooDataView
 /** \brief max. length of data type strings (excluding the trailing `\0`) */
 #define kAooDataTypeMaxLen 63
 
-/* pre-defined data formats */
+/* pre-defined data type names */
 
 /** \brief plain text (UTF-8 encoded) */
 #define kAooDataTypeText "text"
@@ -368,12 +408,17 @@ typedef struct AooDataView
 #define kAooDataTypeOSC "osc"
 /** \brief FUDI (Pure Data) */
 #define kAooDataTypeFUDI "fudi"
-/** \brief invalid data type */
-#define kAooDataTypeInvalid ""
+/** \brief raw bytes */
+#define kAooDataTypeRaw "raw"
+/** \brief MIDI */
+#define kAooDataTypeMIDI "midi"
+/** \brief unspecified data type */
+#define kAooDataTypeUnspec ""
 
-/* Users can define their own data formats.
- * Make sure to use a unique type name!
- * HINT: you can use an ASCII encoded UUID. */
+/* Users may define their own data type names.
+ * A type name must be a sequence of ASCII characters,
+ * ideally starting with an underscore to avoid
+ * clashes with built-in type names. */
 
 /*---------------- AOO format --------------------*/
 

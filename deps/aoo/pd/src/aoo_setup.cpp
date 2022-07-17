@@ -143,13 +143,13 @@ extern "C" EXPORT void aoo_setup(void)
     post("AOO (audio over OSC) %s", aoo_getVersionString());
     post("  (c) 2020 Christof Ressi, Winfried Ritsch, et al.");
 
-    aoo_initialize();
+    aoo_initialize(NULL);
 
     std::string msg;
     if (aoo::check_ntp_server(msg)){
         post("%s", msg.c_str());
     } else {
-        error("%s", msg.c_str());
+        pd_error(0, "%s", msg.c_str());
     }
 
     post("");
