@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" version="1.0.1"
-              jucerFormatVersion="1">
+              jucerFormatVersion="1" cppLanguageStandard="17">
   <MAINGROUP id="GRsEDg" name="aooserver">
     <GROUP id="{24D97FFE-8626-16CD-2BA0-9F94E04385F6}" name="aoo">
       <GROUP id="{A92AA161-9EF4-05C3-039C-ACC2AD385B40}" name="common">
@@ -10,8 +10,12 @@
         <FILE id="ivmDqM" name="net_utils.hpp" compile="0" resource="0" file="deps/aoo/common/net_utils.hpp"/>
         <FILE id="TAlktI" name="sync.cpp" compile="1" resource="0" file="deps/aoo/common/sync.cpp"/>
         <FILE id="tJxfkn" name="sync.hpp" compile="0" resource="0" file="deps/aoo/common/sync.hpp"/>
+        <FILE id="umnFE5" name="tcp_server.cpp" compile="1" resource="0" file="deps/aoo/common/tcp_server.cpp"/>
+        <FILE id="vNxWnw" name="tcp_server.hpp" compile="0" resource="0" file="deps/aoo/common/tcp_server.hpp"/>
         <FILE id="WhL18b" name="time.cpp" compile="1" resource="0" file="deps/aoo/common/time.cpp"/>
         <FILE id="zq58lo" name="time.hpp" compile="0" resource="0" file="deps/aoo/common/time.hpp"/>
+        <FILE id="ehmB3J" name="udp_server.cpp" compile="1" resource="0" file="deps/aoo/common/udp_server.cpp"/>
+        <FILE id="gAvwMD" name="udp_server.hpp" compile="0" resource="0" file="deps/aoo/common/udp_server.hpp"/>
         <FILE id="ftnrFz" name="utils.hpp" compile="0" resource="0" file="deps/aoo/common/utils.hpp"/>
       </GROUP>
       <GROUP id="{2DF67E37-6AF9-3BAB-4A3C-BDD62DA1FF2B}" name="aoo_source">
@@ -22,11 +26,13 @@
         <GROUP id="{8447ED7B-5B31-AED8-8FC0-7DAD2598FFFC}" name="net">
           <FILE id="GrmGcD" name="client.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/client.cpp"/>
           <FILE id="a0ZA7z" name="client.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/client.hpp"/>
+          <FILE id="MwK0ZA" name="osc_stream_receiver.hpp" compile="0" resource="0"
+                file="deps/aoo/aoo/src/net/osc_stream_receiver.hpp"/>
           <FILE id="vtmXEb" name="server.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/net/server.cpp"/>
           <FILE id="KriqdL" name="server.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/server.hpp"/>
-          <FILE id="eOUPgE" name="SLIP.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/net/SLIP.hpp"/>
         </GROUP>
         <FILE id="rLFw6C" name="aoo.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/aoo.cpp"/>
+        <FILE id="qDbk1r" name="binmsg.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/binmsg.hpp"/>
         <FILE id="rCz8co" name="buffer.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/buffer.cpp"/>
         <FILE id="aibm74" name="buffer.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/buffer.hpp"/>
         <FILE id="YKs5sj" name="imp.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/imp.hpp"/>
@@ -93,7 +99,7 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="USE_CODEC_OPUS=0">
+    <XCODE_MAC targetFolder="Builds/MacOSX" extraDefs="USE_CODEC_OPUS=0&#10;AOO_HAVE_PTHREAD_RWLOCK=1&#10;USE_AOO_NET=1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;../../deps/aoo/deps"
                        defines="LOGLEVEL=1"/>

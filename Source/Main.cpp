@@ -13,6 +13,9 @@
 #include "aoo/aoo_net.h"
 #include "aoo/aoo_server.hpp"
 #include "common/net_utils.hpp"
+#include "common/udp_server.hpp"
+#include "common/tcp_server.hpp"
+#include "common/sync.hpp"
 
 #include <unistd.h>
 
@@ -23,10 +26,22 @@ using namespace std;
 
 class AooConsoleServer;
 
-class AooServerThread : public juce::Thread
+class AooUdpServerThread : public juce::Thread
 {
 public:
-    AooServerThread(AooConsoleServer * server) : Thread("AooServerThread") , mServer(server)
+    AooUdpServerThread(AooConsoleServer * server) : Thread("AooUdpServerThread") , mServer(server)
+    {}
+    
+    void run() override;
+    
+    AooConsoleServer * mServer;
+    
+};
+
+class AooTcpServerThread : public juce::Thread
+{
+public:
+    AooTcpServerThread(AooConsoleServer * server) : Thread("AooTcpServerThread") , mServer(server)
     {}
     
     void run() override;
@@ -60,6 +75,16 @@ public:
     void setPort(int port) {
         mPort = port;
     }
+
+    bool getAllowRelay() const { return mAllowRelay; }
+    void setAllowRelay(bool allow) {
+        mAllowRelay = allow;
+        
+        if (mServer) {
+            mServer->setServerRelay(mAllowRelay);
+        }
+    }
+
     
     void setLoggingEnabled(bool flag, const String & logdir = "") {
         mLoggingEnabled = flag;
@@ -76,7 +101,17 @@ public:
 
         int32_t err = 0;
 
-        mServer = AooServer::create(mPort, 0, &err);
+        // setup UDP server
+        udpserver_.start(mPort,
+                         [this](auto&&... args) { handleUdpReceive(args...); });
+        
+        // setup TCP server
+        tcpserver_.start(mPort,
+                         [this](auto&&... args) { return handleAccept(args...); },
+                         [this](auto&&... args) { return handleReceive(args...); });
+
+        
+        mServer = AooServer::create(0, &err);
 
         if (!mServer || err != 0) {
             String errstr;
@@ -86,6 +121,8 @@ public:
             return false;
         }
         
+        mServer->setServerRelay(mAllowRelay);
+        
         mServer->setEventHandler(
             [](void *user, const AooEvent *event, int32_t level) {
                 static_cast<AooConsoleServer*>(user)->handleServerEvent(event, level);
@@ -93,13 +130,18 @@ public:
         
             
         String msg; msg << "ServerStart," << mPort;
+        if (mAllowRelay)
+            msg << ",AllowRelay";
         logEvent(msg);
 
         startTimeMs = Time::getMillisecondCounterHiRes();
         
         if (mServer) {
-            mServerThread = std::make_unique<AooServerThread>(this);    
-            mServerThread->startThread();
+            mUdpServerThread = std::make_unique<AooUdpServerThread>(this);
+            mUdpServerThread->startThread();
+
+            mTcpServerThread = std::make_unique<AooTcpServerThread>(this);
+            mTcpServerThread->startThread();
 
             //mEventThread = std::make_unique<AooEventThread>(*this);    
             //mEventThread->startThread();
@@ -121,10 +163,15 @@ public:
         
         if (mServer) {
             DBG("waiting on server thread to die");
-            mServer->quit();
+            //mServer->quit();
+            
+            udpserver_.stop();
+            tcpserver_.stop();
+            
             Thread::sleep(800);
             //DBG("stopping thread");
-            mServerThread->stopThread(400);
+            mUdpServerThread->stopThread(400);
+            mTcpServerThread->stopThread(400);
             //DBG("thread stopped");
             Thread::sleep(200);
             mServer.reset();
@@ -140,8 +187,8 @@ public:
 
             msg.clear();
             msg << String::formatted("runtime duration: %02d:%02d:%02d", hours, minutes, (int)secs) << "\n";
-            msg << "total traffic: " << totIncomingBytes / 1048576.f << " MB in, " << totOutgoingBytes / 1048576.f << " MB out" << "\n";
-            msg << "average bandwidth: " << totIncomingBytes / runTime << " BPS in, " << totOutgoingBytes / runTime << " BPS out" << "\n";
+            msg << "total traffic: " << totIncomingBytes.load() / 1048576.f << " MB in, " << totOutgoingBytes.load() / 1048576.f << " MB out" << "\n";
+            msg << "average bandwidth: " << totIncomingBytes.load() / runTime << " BPS in, " << totOutgoingBytes.load() / runTime << " BPS out" << "\n";
             msg << "peak bandwidth: " << peakIncomingRate  << " BPS in, " << peakOutgoingRate  << " BPS out" << "\n";
 
             if (mLogger) {
@@ -153,12 +200,16 @@ public:
         }
     }
     
-    void runServer()
+    void runUdpServer()
     {
-        if (mServer) {
-            mServer->run(); // doesn't return until it is quit
-        }
+        udpserver_.run(-1);
     }
+
+    void runTcpServer()
+    {
+        tcpserver_.run();
+    }
+
     
     virtual ~AooConsoleServer() {
         //DBG("Destructor");
@@ -175,8 +226,8 @@ public:
         String message;
         message << timestamp << ",";
         if (mServer) {
-            message << mServer->getGroupCount() << ","
-                    << mServer->getUserCount() << ",";
+            message << mGroups.size() << ","
+                    << mUsers.size() << ",";
         }
         else {
             message << "0,0,"; 
@@ -207,8 +258,8 @@ public:
         // data rate logging
         const double nowtime = Time::getMillisecondCounterHiRes() * 1e-3;
         if (nowtime > lastCheckTimestamp + dataRateLogInterval) {
-            auto incoming = mServer->getIncomingUdpBytes();
-            auto outgoing = mServer->getOutgoingUdpBytes();
+            auto incoming = totIncomingBytes.load(); //  mServer->getIncomingUdpBytes();
+            auto outgoing = totOutgoingBytes.load(); // mServer->getOutgoingUdpBytes();
 
             double deltatime = nowtime - lastCheckTimestamp;
             auto inrate = (incoming - lastIncomingBytes) / deltatime;
@@ -224,9 +275,6 @@ public:
                 peakIncomingRate = inrate > peakIncomingRate ? inrate : peakIncomingRate;
             }
 
-            totOutgoingBytes += outgoing;
-            totIncomingBytes += incoming;
-
             lastCheckTimestamp = nowtime;
             
             lastOutgoingBytes = outgoing;
@@ -236,47 +284,138 @@ public:
         }
     }
 
+    AooId handleAccept(int e, const aoo::ip_address& addr, AooSocket sock)
+    {
+        if (e == 0) {
+            // reply function
+            auto replyfn = [](void *x, AooId client,
+                              const AooByte *data, AooSize size) -> AooInt32 {
+                return static_cast<aoo::tcp_server *>(x)->send(client, data, size);
+            };
+            AooId client;
+            mServer->addClient(replyfn, &tcpserver_, sock, &client); // doesn't fail
+
+            String msg;
+            msg << "ClientAccept," << addr.name_unmapped();
+            logEvent(msg);
+
+            return client;
+        } else {
+            String msg;
+            msg << "Error,Accept failed," << aoo::socket_strerror(e);
+            logEvent(msg);
+            // TODO handle error?
+            return kAooIdInvalid;
+        }
+    }
+    
+
+    void handleReceive(AooId client, int e, const AooByte *data, AooSize size)
+    {
+        if (e == 0 && size > 0) {
+            if (mServer->handleClientMessage(client, data, (AooInt32)size) != kAooOk) {
+                mServer->removeClient(client);
+                tcpserver_.close(client);
+            }
+        } else {
+            // remove client!
+            mServer->removeClient(client);
+            if (e == 0) {
+                DBG("AooServer: client " << client << " disconnected");
+            } else {
+                DBG("AooServer: TCP error in client "
+                          << client << ": " << aoo::socket_strerror(e));
+            }
+        }
+    }
+    
+
+    void handleUdpReceive(int e, const aoo::ip_address& addr,
+                          const AooByte *data, AooSize size)
+    {
+        if (e == 0) {
+            // reply function
+            auto replyfn = [](void *x, const AooByte *data, AooInt32 size,
+                              const void *address, AooAddrSize addrlen, AooFlag) -> AooInt32 {
+                aoo::ip_address addr((const struct sockaddr *)address, addrlen);
+                auto serv = static_cast<AooConsoleServer *>(x);
+                serv->totOutgoingBytes = serv->totOutgoingBytes.load() + size;
+                return serv->udpserver_.send(addr, data, size);
+            };
+            mServer->handleUdpMessage(data, (AooInt32)size, addr.address(), addr.length(),
+                                      replyfn, this);
+            
+            totIncomingBytes = totIncomingBytes.load() + size;
+        } else {
+            DBG("AooServer: UDP error: " << aoo::socket_strerror(e));
+            // TODO handle error?
+        }
+    }
+    
     int32_t handleServerEvent(const AooEvent *event, int32_t level)
     {
         switch (event->type){
-            case kAooNetEventUserJoin:
+            case kAooNetEventServerClientLogin:
             {
-                auto *e = (const AooNetEventUser *)event;
+                auto *e = (const AooNetEventServerClientLogin *)event;
 
                 String msg;
-                msg << "UserJoin," << e->userName;
+                msg << "ClientLogin," << e->id;
                 logEvent(msg);
+                
+                mClients[e->id] = ClientInfo(e->id, e->sockfd);
                 
                 break;
             }
-            case kAooNetEventUserLeave:
+            case kAooNetEventServerClientRemove:
             {
-                auto *e = (const AooNetEventUser *)event;
+                auto *e = (const AooNetEventServerClientRemove *)event;
 
                 String msg;
-                msg << "UserLeave," << e->userName;
+                msg << "ClientRemove," << e->id;
                 logEvent(msg);
                 
-                
+                mClients.erase(e->id);
+
                 break;
             }
-            case kAooNetEventUserGroupJoin:
+            case kAooNetEventServerGroupAdd:
             {
-                auto *e = (const AooNetEventUserGroup *)event;
+                auto e = (const AooNetEventServerGroupAdd *)event;
+
+                mGroups[e->id] = GroupInfo(e->id, e->name);
+
+                break;
+            }
+            case kAooNetEventServerGroupRemove:
+            {
+                auto e = (const AooNetEventServerGroupRemove *)event;
+
+                mGroups.erase(e->id);
+
+                break;
+            }
+            case kAooNetEventServerGroupJoin:
+            {
+                auto *e = (const AooNetEventServerGroupJoin *)event;
                 
                 String msg;
-                msg << "GroupJoin," << e->groupName << "," << e->userName;
+                msg << "UserGroupJoin," << e->groupName << "," << e->userName;
                 logEvent(msg);
-                
+
+                mUsers[{e->groupId, e->userId}] = UserInfo(e->groupId, e->userId, e->userName, e->clientId);
+
                 break;
             }
-            case kAooNetEventUserGroupLeave:
+            case kAooNetEventServerGroupLeave:
             {
-                auto *e = (const AooNetEventUserGroup *)event;
+                auto *e = (const AooNetEventServerGroupLeave *)event;
 
                 String msg;
-                msg << "GroupLeave," << e->groupName << "," << e->userName;
+                msg << "UserGroupLeave," << e->groupName << "," << e->userName;
                 logEvent(msg);
+                
+                mUsers.erase({e->groupId, e->userId});
                 
                 break;
             }
@@ -336,19 +475,57 @@ protected:
     int mPort = 10998;
     
     bool mLoggingEnabled = false;
+    bool mAllowRelay = false;
     String mUseLogDir;
     
     CriticalSection mLock;
     
-    std::unique_ptr<AooServerThread> mServerThread;
+    std::unique_ptr<AooUdpServerThread> mUdpServerThread;
+    std::unique_ptr<AooTcpServerThread> mTcpServerThread;
     //std::unique_ptr<AooEventThread> mEventThread;
     
     std::unique_ptr<FileLogger> mLogger;
     
     AooServer::Ptr mServer;
 
-    uint64_t totIncomingBytes = 0;
-    uint64_t totOutgoingBytes = 0;
+    aoo::udp_server udpserver_;
+    aoo::tcp_server tcpserver_;
+    
+    struct GroupInfo {
+        GroupInfo(AooId gid_=kAooIdInvalid, const std::string & name_="") : gid(gid_), name(name_) {}
+        AooId gid;
+        std::string name;
+    };
+
+    struct UserInfo {
+        UserInfo(AooId gid_=kAooIdInvalid, AooId uid_=kAooIdInvalid, const std::string & name_="", AooId cid_=kAooIdInvalid) : gid(gid_), uid(uid_), name(name_), cid(cid_) {}
+        AooId gid;
+        AooId uid;
+        std::string name;
+        AooId cid;
+    };
+
+    struct ClientInfo {
+        ClientInfo(AooId id_=kAooIdInvalid, AooSocket sock_=-1) : cid(id_), sockfd(sock_) {}
+        AooId cid;
+        AooSocket sockfd;
+    };
+
+    
+    // key is groupid
+    std::map<AooId,GroupInfo> mGroups;
+
+    // key is gid/uid
+    std::map<std::pair<AooId,AooId>, UserInfo> mUsers;
+
+    // key is client id
+    std::map<AooId,ClientInfo> mClients;
+
+    aoo::sync::relaxed_atomic<uint64_t> totIncomingBytes = { 0 };
+    aoo::sync::relaxed_atomic<uint64_t> totOutgoingBytes = { 0 };
+    //std::atomic<uint64_t> totIncomingBytes = { 0 };
+    //std::atomic<uint64_t> totOutgoingBytes = { 0 };
+    
     uint64_t peakIncomingRate = 0;
     uint64_t peakOutgoingRate = 0;
 
@@ -363,13 +540,26 @@ protected:
 
 
 
-void AooServerThread::run()  {
+void AooUdpServerThread::run()  {
 
     double startTimeMs = Time::getMillisecondCounterHiRes();
 
     while (!threadShouldExit()) {
      
-        mServer->runServer();
+        mServer->runUdpServer();
+        
+    }
+   
+    DBG("Server thread finishing");
+}
+
+void AooTcpServerThread::run()  {
+
+    double startTimeMs = Time::getMillisecondCounterHiRes();
+
+    while (!threadShouldExit()) {
+     
+        mServer->runTcpServer();
         
     }
    
@@ -442,6 +632,14 @@ public:
                 //}
             }
         });
+
+        app.addCommand ({ "-r|--relay",
+            "-r|--relay",
+            "Allow server to relay packets between clients",
+            "Allow server to relay packets between clients when necessary when peer-to-peer can't be done",
+            [this] (const auto& args) {}
+        });
+
         
 
         auto logdir = arglist.removeValueForOption("-l|--logdir"); 
@@ -456,6 +654,9 @@ public:
                 server.setPort(port);
             }
         }
+        
+        bool relay = arglist.containsOption("-r|--relay");
+        server.setAllowRelay(relay);
 
         if (arglist.containsOption("-h|--help")) {
             app.printCommandList(arglist);
