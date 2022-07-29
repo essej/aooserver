@@ -35,7 +35,7 @@ public:
     void run() override;
     
     AooConsoleServer * mServer;
-    
+    volatile bool pendingStop = false;
 };
 
 class AooTcpServerThread : public juce::Thread
@@ -47,7 +47,7 @@ public:
     void run() override;
     
     AooConsoleServer * mServer;
-    
+    volatile bool pendingStop = false;
 };
 
 class AooEventThread : public juce::Thread
@@ -164,14 +164,17 @@ public:
         if (mServer) {
             DBG("waiting on server thread to die");
             //mServer->quit();
-            
+
+            mUdpServerThread->pendingStop = mTcpServerThread->pendingStop = true;
+
             udpserver_.stop();
             tcpserver_.stop();
-            
+
             Thread::sleep(800);
             //DBG("stopping thread");
             mUdpServerThread->stopThread(400);
             mTcpServerThread->stopThread(400);
+
             //DBG("thread stopped");
             Thread::sleep(200);
             mServer.reset();
@@ -544,26 +547,26 @@ void AooUdpServerThread::run()  {
 
     double startTimeMs = Time::getMillisecondCounterHiRes();
 
-    while (!threadShouldExit()) {
+    while (!threadShouldExit() && !pendingStop) {
      
         mServer->runUdpServer();
         
     }
    
-    DBG("Server thread finishing");
+    DBG("UDP Server thread finishing");
 }
 
 void AooTcpServerThread::run()  {
 
     double startTimeMs = Time::getMillisecondCounterHiRes();
 
-    while (!threadShouldExit()) {
+    while (!threadShouldExit() && !pendingStop) {
      
         mServer->runTcpServer();
         
     }
    
-    DBG("Server thread finishing");
+    DBG("TCP Server thread finishing");
 }
 
 
