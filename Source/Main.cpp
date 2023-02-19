@@ -342,13 +342,13 @@ public:
                               const void *address, AooAddrSize addrlen, AooFlag) -> AooInt32 {
                 aoo::ip_address addr((const struct sockaddr *)address, addrlen);
                 auto serv = static_cast<AooConsoleServer *>(x);
-                serv->totOutgoingBytes = serv->totOutgoingBytes.load() + size;
+                serv->totOutgoingBytes.store(serv->totOutgoingBytes.load() + size);
                 return serv->udpserver_.send(addr, data, size);
             };
             mServer->handleUdpMessage(data, (AooInt32)size, addr.address(), addr.length(),
                                       replyfn, this);
             
-            totIncomingBytes = totIncomingBytes.load() + size;
+            totIncomingBytes.store(totIncomingBytes.load() + size);
         } else {
             DBG("AooServer: UDP error: " << aoo::socket_strerror(e));
             // TODO handle error?
@@ -358,9 +358,9 @@ public:
     int32_t handleServerEvent(const AooEvent *event, int32_t level)
     {
         switch (event->type){
-            case kAooNetEventServerClientLogin:
+            case kAooEventServerClientLogin:
             {
-                auto *e = (const AooNetEventServerClientLogin *)event;
+                auto *e = (const AooEventServerClientLogin *)event;
 
                 String msg;
                 msg << "ClientLogin," << e->id;
@@ -370,9 +370,9 @@ public:
                 
                 break;
             }
-            case kAooNetEventServerClientRemove:
+            case kAooEventServerClientRemove:
             {
-                auto *e = (const AooNetEventServerClientRemove *)event;
+                auto *e = (const AooEventServerClientRemove *)event;
 
                 String msg;
                 msg << "ClientRemove," << e->id;
@@ -382,25 +382,25 @@ public:
 
                 break;
             }
-            case kAooNetEventServerGroupAdd:
+            case kAooEventServerGroupAdd:
             {
-                auto e = (const AooNetEventServerGroupAdd *)event;
+                auto e = (const AooEventServerGroupAdd *)event;
 
                 mGroups[e->id] = GroupInfo(e->id, e->name);
 
                 break;
             }
-            case kAooNetEventServerGroupRemove:
+            case kAooEventServerGroupRemove:
             {
-                auto e = (const AooNetEventServerGroupRemove *)event;
+                auto e = (const AooEventServerGroupRemove *)event;
 
                 mGroups.erase(e->id);
 
                 break;
             }
-            case kAooNetEventServerGroupJoin:
+            case kAooEventServerGroupJoin:
             {
-                auto *e = (const AooNetEventServerGroupJoin *)event;
+                auto *e = (const AooEventServerGroupJoin *)event;
                 
                 String msg;
                 msg << "UserGroupJoin," << e->groupName << "," << e->userName;
@@ -410,9 +410,9 @@ public:
 
                 break;
             }
-            case kAooNetEventServerGroupLeave:
+            case kAooEventServerGroupLeave:
             {
-                auto *e = (const AooNetEventServerGroupLeave *)event;
+                auto *e = (const AooEventServerGroupLeave *)event;
 
                 String msg;
                 msg << "UserGroupLeave," << e->groupName << "," << e->userName;
@@ -422,9 +422,9 @@ public:
                 
                 break;
             }
-            case kAooNetEventError:
+            case kAooEventError:
             {
-                auto *e = (const AooNetEventError *)event;
+                auto *e = (const AooEventError *)event;
                 
                 String msg;
                 msg << "Error," << e->errorMessage;
