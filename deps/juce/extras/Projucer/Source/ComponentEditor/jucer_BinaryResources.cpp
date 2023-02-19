@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -27,14 +27,6 @@
 #include "jucer_JucerDocument.h"
 
 //==============================================================================
-BinaryResources::BinaryResources()
-{
-}
-
-BinaryResources::~BinaryResources()
-{
-}
-
 BinaryResources& BinaryResources::operator= (const BinaryResources& other)
 {
     for (auto* r : other.resources)
@@ -130,33 +122,55 @@ bool BinaryResources::reload (const int index)
                     File (resources [index]->originalFilename));
 }
 
-String BinaryResources::browseForResource (const String& title,
-                                           const String& wildcard,
-                                           const File& fileToStartFrom,
-                                           const String& resourceToReplace)
+void BinaryResources::browseForResource (const String& title,
+                                         const String& wildcard,
+                                         const File& fileToStartFrom,
+                                         const String& resourceToReplace,
+                                         std::function<void (String)> callback)
 {
-    FileChooser fc (title, fileToStartFrom, wildcard);
+    chooser = std::make_unique<FileChooser> (title, fileToStartFrom, wildcard);
+    auto flags = FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles;
 
-    if (fc.browseForFileToOpen())
+    chooser->launchAsync (flags, [safeThis = WeakReference<BinaryResources> { this },
+                                  resourceToReplace,
+                                  callback] (const FileChooser& fc)
     {
-        String name (resourceToReplace);
-
-        if (name.isEmpty())
-            name = findUniqueName (fc.getResult().getFileName());
-
-        if (! add (name, fc.getResult()))
+        if (safeThis == nullptr)
         {
-            AlertWindow::showMessageBox (AlertWindow::WarningIcon,
-                                         TRANS("Adding Resource"),
-                                         TRANS("Failed to load the file!"));
+            if (callback != nullptr)
+                callback ({});
 
-            name.clear();
+            return;
         }
 
-        return name;
-    }
+        const auto result = fc.getResult();
 
-    return {};
+        auto resourceName = [safeThis, result, resourceToReplace]() -> String
+        {
+            if (result == File())
+                return {};
+
+            if (resourceToReplace.isEmpty())
+                return safeThis->findUniqueName (result.getFileName());
+
+            return resourceToReplace;
+        }();
+
+        if (resourceName.isNotEmpty())
+        {
+            if (! safeThis->add (resourceName, result))
+            {
+                AlertWindow::showMessageBoxAsync (MessageBoxIconType::WarningIcon,
+                                                  TRANS("Adding Resource"),
+                                                  TRANS("Failed to load the file!"));
+
+                resourceName.clear();
+            }
+        }
+
+        if (callback != nullptr)
+            callback (resourceName);
+    });
 }
 
 String BinaryResources::findUniqueName (const String& rootName) const

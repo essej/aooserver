@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -36,9 +36,6 @@ class BinaryResources
 {
 public:
     //==============================================================================
-    BinaryResources();
-    ~BinaryResources();
-
     BinaryResources& operator= (const BinaryResources& other);
 
     void loadFromCpp (const File& cppFileLocation, const String& cpp);
@@ -57,8 +54,9 @@ public:
     void add (const String& name, const String& originalFileName, const MemoryBlock& data);
     void remove (const int index);
     bool reload (const int index);
-    String browseForResource (const String& title, const String& wildcard,
-                              const File& fileToStartFrom, const String& resourceToReplace);
+    void browseForResource (const String& title, const String& wildcard,
+                            const File& fileToStartFrom, const String& resourceToReplace,
+                            std::function<void (String)> callback);
 
     String findUniqueName (const String& rootName) const;
 
@@ -86,12 +84,16 @@ public:
 
     void fillInGeneratedCode (GeneratedCode& code) const;
 
-
 private:
     //==============================================================================
-    JucerDocument* document;
-    OwnedArray <BinaryResource> resources;
-
     BinaryResource* findResource (const String& name) const noexcept;
     void changed();
+
+    //==============================================================================
+    JucerDocument* document;
+    OwnedArray<BinaryResource> resources;
+    std::unique_ptr<FileChooser> chooser;
+
+    //==============================================================================
+    JUCE_DECLARE_WEAK_REFERENCEABLE (BinaryResources)
 };

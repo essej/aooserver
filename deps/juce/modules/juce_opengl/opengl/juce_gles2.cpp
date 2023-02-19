@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -1253,7 +1253,9 @@
     JUCE_GL_FUNCTIONS_GL_ES_VERSION_2_0_DYNAMIC \
     JUCE_GL_FUNCTIONS_GL_ES_VERSION_3_0_DYNAMIC \
     JUCE_GL_FUNCTIONS_GL_ES_VERSION_3_1_DYNAMIC \
-    JUCE_GL_FUNCTIONS_GL_ES_VERSION_3_2_DYNAMIC \
+    JUCE_GL_FUNCTIONS_GL_ES_VERSION_3_2_DYNAMIC
+
+#define JUCE_EXTENSION_GL_FUNCTIONS \
     JUCE_GL_FUNCTIONS_GL_AMD_framebuffer_multisample_advanced \
     JUCE_GL_FUNCTIONS_GL_AMD_performance_monitor \
     JUCE_GL_FUNCTIONS_GL_ANGLE_framebuffer_blit \
@@ -1392,6 +1394,7 @@ JUCE_STATIC_GL_FUNCTIONS
     static returns (KHRONOS_APIENTRY* juce_ ## name) params = nullptr; \
     returns (KHRONOS_APIENTRY* const& ::juce::gl::name) params = juce_ ## name;
 JUCE_DYNAMIC_GL_FUNCTIONS
+JUCE_EXTENSION_GL_FUNCTIONS
 #undef X
 
 void juce::gl::loadFunctions()
@@ -1402,5 +1405,14 @@ void juce::gl::loadFunctions()
    #undef X
 }
 
+void juce::gl::loadExtensions()
+{
+   #define X(returns, name, params) \
+       juce_ ## name = reinterpret_cast<returns (KHRONOS_APIENTRY*) params> (::juce::OpenGLHelpers::getExtensionFunction (#name));
+    JUCE_EXTENSION_GL_FUNCTIONS
+   #undef X
+}
+
 #undef JUCE_STATIC_GL_FUNCTIONS
 #undef JUCE_DYNAMIC_GL_FUNCTIONS
+#undef JUCE_EXTENSION_GL_FUNCTIONS

@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -226,31 +226,29 @@ void HeaderComponent::initialiseButtons()
     saveAndOpenInIDEButton.setIconInset (7);
     saveAndOpenInIDEButton.onClick = [this]
     {
-        if (project != nullptr)
+        if (project == nullptr)
+            return;
+
+        if (! project->isSaveAndExportDisabled())
         {
-            if (project->isSaveAndExportDisabled())
-            {
-                auto setWarningVisible = [this] (const Identifier& identifier)
-                {
-                    auto child = project->getProjectMessages().getChildWithName (ProjectMessages::Ids::warning)
-                                                              .getChildWithName (identifier);
-
-                    if (child.isValid())
-                        child.setProperty (ProjectMessages::Ids::isVisible, true, nullptr);
-                };
-
-                if (project->hasIncompatibleLicenseTypeAndSplashScreenSetting())
-                    setWarningVisible (ProjectMessages::Ids::incompatibleLicense);
-
-                if (project->isFileModificationCheckPending())
-                    setWarningVisible (ProjectMessages::Ids::jucerFileModified);
-            }
-            else
-            {
-                if (auto exporter = getSelectedExporter())
-                    project->openProjectInIDE (*exporter, true);
-            }
+            projectContentComponent->openInSelectedIDE (true);
+            return;
         }
+
+        auto setWarningVisible = [this] (const Identifier& identifier)
+        {
+            auto child = project->getProjectMessages().getChildWithName (ProjectMessages::Ids::warning)
+                                                      .getChildWithName (identifier);
+
+            if (child.isValid())
+                child.setProperty (ProjectMessages::Ids::isVisible, true, nullptr);
+        };
+
+        if (project->hasIncompatibleLicenseTypeAndSplashScreenSetting())
+            setWarningVisible (ProjectMessages::Ids::incompatibleLicense);
+
+        if (project->isFileModificationCheckPending())
+            setWarningVisible (ProjectMessages::Ids::jucerFileModified);
     };
 
     updateExporterButton();

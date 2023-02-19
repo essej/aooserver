@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -65,6 +65,12 @@ namespace
         return CGPointMake ((CGFloat) p.x, (CGFloat) p.y);
     }
 
+    template <class PointType>
+    Point<int> roundToIntPoint (PointType p) noexcept
+    {
+        return { roundToInt (p.x), roundToInt (p.y) };
+    }
+
    #if JUCE_MAC
     inline CGFloat getMainScreenHeight() noexcept
     {
@@ -85,16 +91,10 @@ namespace
         p.y = getMainScreenHeight() - p.y;
         return p;
     }
-
-    template <class PointType>
-    Point<int> convertToIntPoint (PointType p) noexcept
-    {
-        return Point<int> (roundToInt (p.x), roundToInt (p.y));
-    }
    #endif
 }
 
-CGImageRef juce_createCoreGraphicsImage (const Image&, CGColorSpaceRef, bool mustOutliveSource);
+CGImageRef juce_createCoreGraphicsImage (const Image&, CGColorSpaceRef);
 CGContextRef juce_getImageContext (const Image&);
 
 #if JUCE_IOS
@@ -102,7 +102,7 @@ CGContextRef juce_getImageContext (const Image&);
 #endif
 
 #if JUCE_MAC
- NSImage* imageToNSImage (const Image& image, float scaleFactor = 1.0f);
+ NSImage* imageToNSImage (const ScaledImage& image);
 #endif
 
 } // namespace juce

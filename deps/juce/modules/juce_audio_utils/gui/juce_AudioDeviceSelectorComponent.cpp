@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -33,10 +33,6 @@ struct SimpleDeviceManagerInputLevelMeter  : public Component,
     {
         startTimerHz (20);
         inputLevelGetter = manager.getInputLevelGetter();
-    }
-
-    ~SimpleDeviceManagerInputLevelMeter() override
-    {
     }
 
     void timerCallback() override
@@ -295,7 +291,15 @@ public:
             {
                 inputChanList->setRowHeight (listRowHeight);
                 inputChanList->setBounds (r.removeFromTop (inputChanList->getBestHeight (maxListBoxHeight)));
-                inputChanLabel->setBounds (0, inputChanList->getBounds().getY(), r.getX(), inputChanList->getHeight());
+                auto leftarea = Rectangle<int>(0, inputChanList->getBounds().getY(), r.getX(), inputChanList->getHeight());
+                if (leftarea.getHeight() > 50) {
+                    inputChanSelectAllButton->setBounds (leftarea.removeFromBottom (32).reduced (3, 2));
+                    inputChanSelectAllButton->setVisible (true);
+                } else {
+                    inputChanSelectAllButton->setVisible (false);
+                }
+                inputChanLabel->setBounds (leftarea);
+
                 r.removeFromTop (space);
             }
 
@@ -303,7 +307,15 @@ public:
             {
                 outputChanList->setRowHeight (listRowHeight);
                 outputChanList->setBounds (r.removeFromTop (outputChanList->getBestHeight (maxListBoxHeight)));
-                outputChanLabel->setBounds (0, outputChanList->getBounds().getY(), r.getX(), outputChanList->getHeight());
+                auto leftarea = Rectangle<int>(0, outputChanList->getBounds().getY(), r.getX(), outputChanList->getHeight());
+                if (leftarea.getHeight() > 50) {
+                    outputChanSelectAllButton->setBounds (leftarea.removeFromBottom (32).reduced (3, 2));
+                    outputChanSelectAllButton->setVisible (true);
+                }
+                else {
+                    outputChanSelectAllButton->setVisible (false);
+                }
+                outputChanLabel->setBounds (leftarea);
                 r.removeFromTop (space);
             }
 
@@ -423,7 +435,7 @@ public:
         }
 
         if (error.isNotEmpty())
-            AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon,
+            AlertWindow::showMessageBoxAsync (MessageBoxIconType::WarningIcon,
                                               TRANS("Error when trying to open audio device!"),
                                               error);
     }
@@ -487,6 +499,13 @@ public:
                     outputChanLabel.reset (new Label ({}, TRANS("Active Output Channels:")));
                     outputChanLabel->setJustificationType (Justification::centredRight);
                     outputChanLabel->attachToComponent (outputChanList.get(), true);
+
+                    outputChanSelectAllButton = std::make_unique<TextButton>();
+                    outputChanSelectAllButton->setButtonText(TRANS("Select All"));
+                    addAndMakeVisible (outputChanSelectAllButton.get());
+                    outputChanSelectAllButton->onClick = [this] () {
+                        clickedSelectAll(false);
+                    };
                 }
 
                 outputChanList->refresh();
@@ -495,6 +514,7 @@ public:
             {
                 outputChanLabel.reset();
                 outputChanList.reset();
+                outputChanSelectAllButton.reset();
             }
 
             if (setup.maxNumInputChannels > 0
@@ -509,6 +529,14 @@ public:
                     inputChanLabel.reset (new Label ({}, TRANS("Active Input Channels:")));
                     inputChanLabel->setJustificationType (Justification::centredRight);
                     inputChanLabel->attachToComponent (inputChanList.get(), true);
+
+                    inputChanSelectAllButton = std::make_unique<TextButton>();
+                    inputChanSelectAllButton->setButtonText(TRANS("Select All"));
+                    addAndMakeVisible (inputChanSelectAllButton.get());
+                    inputChanSelectAllButton->onClick = [this] () {
+                        clickedSelectAll(true);
+                    };
+
                 }
 
                 inputChanList->refresh();
@@ -517,6 +545,7 @@ public:
             {
                 inputChanLabel.reset();
                 inputChanList.reset();
+                inputChanSelectAllButton.reset();
             }
 
             updateSampleRateComboBox (currentDevice);
@@ -535,6 +564,8 @@ public:
             outputChanList.reset();
             sampleRateDropDown.reset();
             bufferSizeDropDown.reset();
+            inputChanSelectAllButton.reset();
+            outputChanSelectAllButton.reset();
 
             if (outputDeviceDropDown != nullptr)
                 outputDeviceDropDown->setSelectedId (-1, dontSendNotification);
@@ -551,6 +582,35 @@ public:
     void changeListenerCallback (ChangeBroadcaster*) override
     {
         updateAllControls();
+    }
+
+    void clickedSelectAll (bool input)
+    {
+        auto config = setup.manager->getAudioDeviceSetup();
+
+        auto& original = (input ? config.inputChannels
+                          : config.outputChannels);
+
+        int maxchans = input ? setup.maxNumInputChannels : setup.maxNumOutputChannels;
+        int minchans = input ? setup.minNumInputChannels : setup.minNumOutputChannels;
+
+        if (inputChanList && outputChanList) {
+            maxchans = (input ? inputChanList->getNumRows() : outputChanList->getNumRows()) * (setup.useStereoPairs ? 2 : 1);
+        }
+
+        if (original.countNumberOfSetBits() >= maxchans) {
+            // deselect all but the first minchans
+            original.setRange(0, minchans, true);
+            original.setRange(minchans, maxchans-minchans, false);
+        } else {
+            // select all
+            original.setRange(0, maxchans, true);
+        }
+
+        if (input) config.useDefaultInputChannels = false;
+        else config.useDefaultOutputChannels = false;
+
+        setup.manager->setAudioDeviceSetup (config, true);
     }
 
     void resetDevice()
@@ -712,13 +772,17 @@ private:
             sampleRateDropDown->onChange = nullptr;
         }
 
+        const auto getFrequencyString = [] (int rate) { return String (rate) + " Hz"; };
+
         for (auto rate : currentDevice->getAvailableSampleRates())
         {
-            auto intRate = roundToInt (rate);
-            sampleRateDropDown->addItem (String (intRate) + " Hz", intRate);
+            const auto intRate = roundToInt (rate);
+            sampleRateDropDown->addItem (getFrequencyString (intRate), intRate);
         }
 
-        sampleRateDropDown->setSelectedId (roundToInt (currentDevice->getCurrentSampleRate()), dontSendNotification);
+        const auto intRate = roundToInt (currentDevice->getCurrentSampleRate());
+        sampleRateDropDown->setText (getFrequencyString (intRate), dontSendNotification);
+
         sampleRateDropDown->onChange = [this] { updateConfig (false, false, true, false); };
     }
 
@@ -1015,6 +1079,7 @@ public:
 
 private:
     std::unique_ptr<ChannelSelectorListBox> inputChanList, outputChanList;
+    std::unique_ptr<TextButton> inputChanSelectAllButton, outputChanSelectAllButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioDeviceSettingsPanel)
 };
@@ -1101,7 +1166,6 @@ AudioDeviceSelectorComponent::AudioDeviceSelectorComponent (AudioDeviceManager& 
 
     deviceManager.addChangeListener (this);
     updateAllControls();
-    startTimer (1000);
 }
 
 AudioDeviceSelectorComponent::~AudioDeviceSelectorComponent()
@@ -1153,16 +1217,6 @@ void AudioDeviceSelectorComponent::resized()
 
     r.removeFromTop (itemHeight);
     setSize (getWidth(), r.getY());
-}
-
-void AudioDeviceSelectorComponent::timerCallback()
-{
-    // TODO
-    // unfortunately, the AudioDeviceManager only gives us changeListenerCallbacks
-    // if an audio device has changed, but not if a MIDI device has changed.
-    // This needs to be implemented properly. Until then, we use a workaround
-    // where we update the whole component once per second on a timer callback.
-    updateAllControls();
 }
 
 void AudioDeviceSelectorComponent::updateDeviceType()
@@ -1254,11 +1308,18 @@ void AudioDeviceSelectorComponent::updateAllControls()
 
 void AudioDeviceSelectorComponent::handleBluetoothButton()
 {
-    if (! RuntimePermissions::isGranted (RuntimePermissions::bluetoothMidi))
-        RuntimePermissions::request (RuntimePermissions::bluetoothMidi, nullptr);
-
     if (RuntimePermissions::isGranted (RuntimePermissions::bluetoothMidi))
+    {
         BluetoothMidiDevicePairingDialogue::open();
+    }
+    else
+    {
+        RuntimePermissions::request (RuntimePermissions::bluetoothMidi, [] (auto)
+        {
+            if (RuntimePermissions::isGranted (RuntimePermissions::bluetoothMidi))
+                BluetoothMidiDevicePairingDialogue::open();
+        });
+    }
 }
 
 ListBox* AudioDeviceSelectorComponent::getMidiInputSelectorListBox() const noexcept

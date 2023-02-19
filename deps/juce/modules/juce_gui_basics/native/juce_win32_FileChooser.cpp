@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -22,10 +22,6 @@
 
   ==============================================================================
 */
-
-#if JUCE_MINGW
-LWSTDAPI IUnknown_GetWindow (IUnknown* punk, HWND* phwnd);
-#endif
 
 namespace juce
 {
@@ -170,7 +166,7 @@ private:
         void operator() (LPWSTR ptr) const noexcept { CoTaskMemFree (ptr); }
     };
 
-    bool showDialog (IFileDialog& dialog, bool async)
+    bool showDialog (IFileDialog& dialog)
     {
         FILEOPENDIALOGOPTIONS flags = {};
 
@@ -215,8 +211,13 @@ private:
             return ptr;
         }();
 
-        if (item == nullptr || FAILED (dialog.SetDefaultFolder (item)))
-            return false;
+        if (item != nullptr)
+        {
+            dialog.SetDefaultFolder (item);
+
+            if (! initialPath.isEmpty())
+                dialog.SetFolder (item);
+        }
 
         String filename (files.getData());
 
@@ -248,7 +249,9 @@ private:
             JUCE_COMRESULT updateHwnd (IFileDialog* d)
             {
                 HWND hwnd = nullptr;
-                IUnknown_GetWindow (d, &hwnd);
+
+                if (auto window = ComSmartPtr<IFileDialog> { d }.getInterface<IOleWindow>())
+                    window->GetWindow (&hwnd);
 
                 ScopedLock lock (owner.deletingDialog);
 
@@ -282,7 +285,7 @@ private:
 
             Events events { *this };
             ScopedAdvise scope { dialog, events };
-            return dialog.Show (async ? nullptr : static_cast<HWND> (owner->getWindowHandle())) == S_OK;
+            return dialog.Show (GetActiveWindow()) == S_OK;
         }();
 
         ScopedLock lock (deletingDialog);
@@ -292,7 +295,7 @@ private:
     }
 
     //==============================================================================
-    Array<URL> openDialogVistaAndUp (bool async)
+    Array<URL> openDialogVistaAndUp()
     {
         const auto getUrl = [] (IShellItem& item)
         {
@@ -317,7 +320,7 @@ private:
             if (dialog == nullptr)
                 return {};
 
-            showDialog (*dialog, async);
+            showDialog (*dialog);
 
             const auto item = [&]
             {
@@ -347,7 +350,7 @@ private:
         if (dialog == nullptr)
             return {};
 
-        showDialog (*dialog, async);
+        showDialog (*dialog);
 
         const auto items = [&]
         {
@@ -388,7 +391,7 @@ private:
         if (selectsDirectories)
         {
             BROWSEINFO bi = {};
-            bi.hwndOwner = (HWND) (async ? nullptr : owner->getWindowHandle());
+            bi.hwndOwner = GetActiveWindow();
             bi.pszDisplayName = files;
             bi.lpszTitle = title.toWideCharPointer();
             bi.lParam = (LPARAM) this;
@@ -431,7 +434,14 @@ private:
            #else
             of.lStructSize = sizeof (of);
            #endif
-            of.hwndOwner = (HWND) (async ? nullptr : owner->getWindowHandle());
+
+            if (files[0] != 0)
+            {
+                auto startingFile = File (initialPath).getChildFile (String (files.get()));
+                startingFile.getFullPathName().copyToUTF16 (files, charsAvailableForResult * sizeof (WCHAR));
+            }
+
+            of.hwndOwner = GetActiveWindow();
             of.lpstrFilter = filters.getData();
             of.nFilterIndex = 1;
             of.lpstrFile = files;
@@ -489,13 +499,11 @@ private:
 
         const Remover remover (*this);
 
-       #if ! JUCE_MINGW
         if (SystemStats::getOperatingSystemType() >= SystemStats::WinVista
             && customComponent == nullptr)
         {
-            return openDialogVistaAndUp (async);
+            return openDialogVistaAndUp();
         }
-       #endif
 
         return openDialogPreVista (async);
     }
@@ -507,7 +515,7 @@ private:
             struct ScopedCoInitialize
             {
                 // IUnknown_GetWindow will only succeed when instantiated in a single-thread apartment
-                ScopedCoInitialize() { ignoreUnused (CoInitializeEx (nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)); }
+                ScopedCoInitialize() { [[maybe_unused]] const auto result = CoInitializeEx (nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE); }
                 ~ScopedCoInitialize() { CoUninitialize(); }
             };
 
@@ -680,12 +688,11 @@ private:
                 }
                 else
                 {
-                    Component::SafePointer<FilePreviewComponent> safeComp (comp);
-
-                    File selectedFile (path);
-                    MessageManager::callAsync ([safeComp, selectedFile]() mutable
+                    MessageManager::callAsync ([safeComp = Component::SafePointer<FilePreviewComponent> { comp },
+                                                selectedFile = File { path }]() mutable
                                                {
-                                                    safeComp->selectedFileChanged (selectedFile);
+                                                    if (safeComp != nullptr)
+                                                        safeComp->selectedFileChanged (selectedFile);
                                                });
                 }
             }
@@ -770,9 +777,9 @@ class FileChooser::Native     : public std::enable_shared_from_this<Native>,
                                 public FileChooser::Pimpl
 {
 public:
-    Native (FileChooser& fileChooser, int flags, FilePreviewComponent* previewComp)
+    Native (FileChooser& fileChooser, int flagsIn, FilePreviewComponent* previewComp)
         : owner (fileChooser),
-          nativeFileChooser (std::make_unique<Win32NativeFileChooser> (this, flags, previewComp, fileChooser.startingFile,
+          nativeFileChooser (std::make_unique<Win32NativeFileChooser> (this, flagsIn, previewComp, fileChooser.startingFile,
                                                                        fileChooser.title, fileChooser.filters))
     {
         auto mainMon = Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;

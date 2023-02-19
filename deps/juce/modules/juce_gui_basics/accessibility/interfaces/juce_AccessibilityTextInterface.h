@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -46,6 +46,9 @@ public:
     */
     virtual bool isDisplayingProtectedText() const = 0;
 
+    /** Returns true if the text being displayed is read-only or false if editable. */
+    virtual bool isReadOnly() const = 0;
+
     /** Returns the total number of characters in the text element. */
     virtual int getTotalNumCharacters() const = 0;
 
@@ -62,6 +65,9 @@ public:
 
     /** Returns a section of text. */
     virtual String getText (Range<int> range) const = 0;
+
+    /** Returns the full text. */
+    String getAllText() const { return getText ({ 0, getTotalNumCharacters() }); }
 
     /** Replaces the text with a new string. */
     virtual void setText (const String& newText) = 0;

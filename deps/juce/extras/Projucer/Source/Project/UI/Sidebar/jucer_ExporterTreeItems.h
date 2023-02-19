@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -60,7 +60,6 @@ public:
             else if    (e->isAndroid())      return Icon (getIcons().android,      Colours::transparentBlack);
             else if    (e->isCodeBlocks())   return Icon (getIcons().codeBlocks,   Colours::transparentBlack);
             else if    (e->isMakefile())     return Icon (getIcons().linux,        Colours::transparentBlack);
-            else if    (e->isCLion())        return Icon (getIcons().clion,        Colours::transparentBlack);
         }
 
         return Icon();
@@ -78,13 +77,25 @@ public:
 
     void deleteItem() override
     {
-        if (AlertWindow::showOkCancelBox (AlertWindow::WarningIcon, "Delete Exporter",
-                                          "Are you sure you want to delete this export target?"))
+        auto resultCallback = [safeThis = WeakReference<ExporterItem> { this }] (int result)
         {
-            closeSettingsPage();
-            ValueTree parent (exporter->settings.getParent());
-            parent.removeChild (exporter->settings, project.getUndoManagerFor (parent));
-        }
+            if (safeThis == nullptr || result == 0)
+                return;
+
+            safeThis->closeSettingsPage();
+
+            auto parent = safeThis->exporter->settings.getParent();
+            parent.removeChild (safeThis->exporter->settings,
+                                safeThis->project.getUndoManagerFor (parent));
+        };
+
+        AlertWindow::showOkCancelBox (MessageBoxIconType::WarningIcon,
+                                      "Delete Exporter",
+                                      "Are you sure you want to delete this export target?",
+                                      "",
+                                      "",
+                                      nullptr,
+                                      ModalCallbackFunction::create (std::move (resultCallback)));
     }
 
     void addSubItems() override
@@ -117,7 +128,7 @@ public:
         if (resultCode == 1)
             exporter->addNewConfiguration (false);
         else if (resultCode == 2)
-            project.saveProject (exporter.get());
+            project.saveProject (Async::yes, exporter.get(), nullptr);
         else if (resultCode == 3)
             deleteAllSelectedItems();
     }
@@ -200,6 +211,7 @@ private:
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ExporterItem)
+    JUCE_DECLARE_WEAK_REFERENCEABLE (ExporterItem)
 };
 
 
@@ -231,12 +243,23 @@ public:
 
     void deleteItem() override
     {
-        if (AlertWindow::showOkCancelBox (AlertWindow::WarningIcon, "Delete Configuration",
-                                          "Are you sure you want to delete this configuration?"))
+        AlertWindow::showOkCancelBox (MessageBoxIconType::WarningIcon,
+                                      "Delete Configuration",
+                                      "Are you sure you want to delete this configuration?",
+                                      "",
+                                      "",
+                                      nullptr,
+                                      ModalCallbackFunction::create ([parent = WeakReference<ConfigItem> { this }] (int result)
         {
-            closeSettingsPage();
-            config->removeFromExporter();
-        }
+            if (parent == nullptr)
+                return;
+
+            if (result == 0)
+                return;
+
+            parent->closeSettingsPage();
+            parent->config->removeFromExporter();
+        }));
     }
 
     void showPopupMenu (Point<int> p) override
@@ -297,6 +320,8 @@ private:
     };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ConfigItem)
+    JUCE_DECLARE_WEAK_REFERENCEABLE (ConfigItem)
+
 };
 
 //==============================================================================

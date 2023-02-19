@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -54,31 +54,34 @@ namespace build_tools
 
     String getXcodePackageType (ProjectType::Target::Type type)
     {
+        using Type = ProjectType::Target::Type;
+
         switch (type)
         {
-            case ProjectType::Target::Type::GUIApp:
-            case ProjectType::Target::Type::StandalonePlugIn:
+            case Type::GUIApp:
+            case Type::StandalonePlugIn:
                 return "APPL";
 
-            case ProjectType::Target::Type::VSTPlugIn:
-            case ProjectType::Target::Type::VST3PlugIn:
-            case ProjectType::Target::Type::AudioUnitPlugIn:
-            case ProjectType::Target::Type::UnityPlugIn:
+            case Type::VSTPlugIn:
+            case Type::VST3PlugIn:
+            case Type::AudioUnitPlugIn:
+            case Type::UnityPlugIn:
                 return "BNDL";
 
-            case ProjectType::Target::Type::AudioUnitv3PlugIn:
+            case Type::AudioUnitv3PlugIn:
                 return "XPC!";
 
-            case ProjectType::Target::Type::AAXPlugIn:
-            case ProjectType::Target::Type::RTASPlugIn:
+            case Type::AAXPlugIn:
                 return "TDMw";
 
-            case ProjectType::Target::Type::ConsoleApp:
-            case ProjectType::Target::Type::StaticLibrary:
-            case ProjectType::Target::Type::DynamicLibrary:
-            case ProjectType::Target::Type::SharedCodeTarget:
-            case ProjectType::Target::Type::AggregateTarget:
-            case ProjectType::Target::Type::unspecified:
+            case Type::ConsoleApp:
+            case Type::StaticLibrary:
+            case Type::DynamicLibrary:
+            case Type::LV2PlugIn:
+            case Type::LV2TurtleProgram:
+            case Type::SharedCodeTarget:
+            case Type::AggregateTarget:
+            case Type::unspecified:
             default:
                 return {};
         }
@@ -86,27 +89,30 @@ namespace build_tools
 
     String getXcodeBundleSignature (ProjectType::Target::Type type)
     {
+        using Type = ProjectType::Target::Type;
+
         switch (type)
         {
-            case ProjectType::Target::Type::GUIApp:
-            case ProjectType::Target::Type::VSTPlugIn:
-            case ProjectType::Target::Type::VST3PlugIn:
-            case ProjectType::Target::Type::AudioUnitPlugIn:
-            case ProjectType::Target::Type::StandalonePlugIn:
-            case ProjectType::Target::Type::AudioUnitv3PlugIn:
-            case ProjectType::Target::Type::UnityPlugIn:
+            case Type::GUIApp:
+            case Type::VSTPlugIn:
+            case Type::VST3PlugIn:
+            case Type::AudioUnitPlugIn:
+            case Type::StandalonePlugIn:
+            case Type::AudioUnitv3PlugIn:
+            case Type::UnityPlugIn:
                 return "????";
 
-            case ProjectType::Target::Type::AAXPlugIn:
-            case ProjectType::Target::Type::RTASPlugIn:
+            case Type::AAXPlugIn:
                 return "PTul";
 
-            case ProjectType::Target::Type::ConsoleApp:
-            case ProjectType::Target::Type::StaticLibrary:
-            case ProjectType::Target::Type::DynamicLibrary:
-            case ProjectType::Target::Type::SharedCodeTarget:
-            case ProjectType::Target::Type::AggregateTarget:
-            case ProjectType::Target::Type::unspecified:
+            case Type::ConsoleApp:
+            case Type::StaticLibrary:
+            case Type::DynamicLibrary:
+            case Type::LV2PlugIn:
+            case Type::LV2TurtleProgram:
+            case Type::SharedCodeTarget:
+            case Type::AggregateTarget:
+            case Type::unspecified:
             default:
                 return {};
         }

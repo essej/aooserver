@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -73,13 +73,20 @@ public:
         addAndMakeVisible (createButton);
         createButton.onClick = [this]
         {
-            FileChooser fc ("Save PIP File",
-                            File::getSpecialLocation (File::SpecialLocationType::userDesktopDirectory)
-                                 .getChildFile (nameValue.get().toString() + ".h"));
+            chooser = std::make_unique<FileChooser> ("Save PIP File",
+                                                     File::getSpecialLocation (File::SpecialLocationType::userDesktopDirectory)
+                                                          .getChildFile (nameValue.get().toString() + ".h"));
+            auto browserFlags = FileBrowserComponent::saveMode
+                              | FileBrowserComponent::canSelectFiles
+                              | FileBrowserComponent::warnAboutOverwriting;
 
-            fc.browseForFileToSave (true);
+            chooser->launchAsync (browserFlags, [this] (const FileChooser& fc)
+            {
+                const auto result = fc.getResult();
 
-            createPIPFile (fc.getResult());
+                if (result != File{})
+                    createPIPFile (result);
+            });
         };
 
         pipTree.addListener (this);
@@ -313,25 +320,27 @@ private:
 
     //==============================================================================
     ValueTree pipTree  { "PIPSettings" };
-    ValueWithDefault nameValue          { pipTree, Ids::name,          nullptr, "MyComponentPIP" },
-                     versionValue       { pipTree, Ids::version,       nullptr },
-                     vendorValue        { pipTree, Ids::vendor,        nullptr },
-                     websiteValue       { pipTree, Ids::website,       nullptr },
-                     descriptionValue   { pipTree, Ids::description,   nullptr },
-                     dependenciesValue  { pipTree, Ids::dependencies_, nullptr, getModulesRequiredForComponent(), "," },
-                     exportersValue     { pipTree, Ids::exporters,     nullptr, StringArray (ProjectExporter::getCurrentPlatformExporterTypeInfo().identifier.toString()), "," },
-                     moduleFlagsValue   { pipTree, Ids::moduleFlags,   nullptr, "JUCE_STRICT_REFCOUNTEDPOINTER=1" },
-                     definesValue       { pipTree, Ids::defines,       nullptr },
-                     typeValue          { pipTree, Ids::type,          nullptr, "Component" },
-                     mainClassValue     { pipTree, Ids::mainClass,     nullptr, "MyComponent" },
-                     useLocalCopyValue  { pipTree, Ids::useLocalCopy,  nullptr, false };
+    ValueTreePropertyWithDefault nameValue          { pipTree, Ids::name,          nullptr, "MyComponentPIP" },
+                                 versionValue       { pipTree, Ids::version,       nullptr },
+                                 vendorValue        { pipTree, Ids::vendor,        nullptr },
+                                 websiteValue       { pipTree, Ids::website,       nullptr },
+                                 descriptionValue   { pipTree, Ids::description,   nullptr },
+                                 dependenciesValue  { pipTree, Ids::dependencies_, nullptr, getModulesRequiredForComponent(), "," },
+                                 exportersValue     { pipTree, Ids::exporters,     nullptr, StringArray (ProjectExporter::getCurrentPlatformExporterTypeInfo().identifier.toString()), "," },
+                                 moduleFlagsValue   { pipTree, Ids::moduleFlags,   nullptr, "JUCE_STRICT_REFCOUNTEDPOINTER=1" },
+                                 definesValue       { pipTree, Ids::defines,       nullptr },
+                                 typeValue          { pipTree, Ids::type,          nullptr, "Component" },
+                                 mainClassValue     { pipTree, Ids::mainClass,     nullptr, "MyComponent" },
+                                 useLocalCopyValue  { pipTree, Ids::useLocalCopy,  nullptr, false };
 
     std::unique_ptr<PIPCreatorLookAndFeel> lf;
 
     Viewport propertyViewport;
-    PropertyGroupComponent propertyGroup  { "PIP Creator", { getIcons().juceLogo, Colours::transparentBlack } };
+    PropertyGroupComponent propertyGroup  { "PIP Creator", {} };
 
     TextButton createButton  { "Create PIP" };
+
+    std::unique_ptr<FileChooser> chooser;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PIPCreatorWindowComponent)

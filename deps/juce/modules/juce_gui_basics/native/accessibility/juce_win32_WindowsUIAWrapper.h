@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -50,19 +50,19 @@ public:
     JUCE_COMRESULT hostProviderFromHwnd (HWND hwnd, IRawElementProviderSimple** provider)
     {
         return uiaHostProviderFromHwnd != nullptr ? uiaHostProviderFromHwnd (hwnd, provider)
-                                                  : UIA_E_NOTSUPPORTED;
+                                                  : (HRESULT) UIA_E_NOTSUPPORTED;
     }
 
     JUCE_COMRESULT raiseAutomationPropertyChangedEvent (IRawElementProviderSimple* provider, PROPERTYID propID, VARIANT oldValue, VARIANT newValue)
     {
         return uiaRaiseAutomationPropertyChangedEvent != nullptr ? uiaRaiseAutomationPropertyChangedEvent (provider, propID, oldValue, newValue)
-                                                                 : UIA_E_NOTSUPPORTED;
+                                                                 : (HRESULT) UIA_E_NOTSUPPORTED;
     }
 
     JUCE_COMRESULT raiseAutomationEvent (IRawElementProviderSimple* provider, EVENTID eventID)
     {
         return uiaRaiseAutomationEvent != nullptr ? uiaRaiseAutomationEvent (provider, eventID)
-                                                  : UIA_E_NOTSUPPORTED;
+                                                  : (HRESULT) UIA_E_NOTSUPPORTED;
     }
 
     BOOL clientsAreListening()
@@ -79,7 +79,7 @@ public:
             return uiaDisconnectProvider (provider);
         }
 
-        return UIA_E_NOTSUPPORTED;
+        return (HRESULT) UIA_E_NOTSUPPORTED;
     }
 
     JUCE_COMRESULT disconnectAllProviders()
@@ -90,7 +90,7 @@ public:
             return uiaDisconnectAllProviders();
         }
 
-        return UIA_E_NOTSUPPORTED;
+        return (HRESULT) UIA_E_NOTSUPPORTED;
     }
 
     //==============================================================================
@@ -124,10 +124,12 @@ private:
     }
 
     //==============================================================================
-    template<typename FuncType>
-    static FuncType getUiaFunction (HMODULE module, StringRef funcName)
+    template <typename FuncType>
+    static FuncType getUiaFunction (HMODULE module, LPCSTR funcName)
     {
+        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wcast-function-type")
         return (FuncType) GetProcAddress (module, funcName);
+        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
     }
 
     //==============================================================================

@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -40,6 +40,7 @@ protected:
               pluginBinaryCopyStepValue (config, Ids::enablePluginBinaryCopyStep, getUndoManager(), true),
               vstBinaryLocation         (config, Ids::vstBinaryLocation,          getUndoManager(), "$(HOME)/.vst"),
               vst3BinaryLocation        (config, Ids::vst3BinaryLocation,         getUndoManager(), "$(HOME)/.vst3"),
+              lv2BinaryLocation         (config, Ids::lv2BinaryLocation,          getUndoManager(), "$(HOME)/.lv2"),
               unityPluginBinaryLocation (config, Ids::unityPluginBinaryLocation,  getUndoManager(), "$(HOME)/UnityPlugins")
         {
             linkTimeOptimisationValue.setDefault (false);
@@ -57,7 +58,7 @@ protected:
                        "Specifies the 32/64-bit architecture to use. If you don't see the required architecture in this list, you can also specify the desired "
                        "flag on the command-line when invoking make by passing \"TARGET_ARCH=-march=<arch to use>\"");
 
-            auto isBuildingAnyPlugins = (project.shouldBuildVST() || project.shouldBuildVST3() || project.shouldBuildUnityPlugin());
+            auto isBuildingAnyPlugins = (project.shouldBuildVST() || project.shouldBuildVST3() || project.shouldBuildUnityPlugin() || project.shouldBuildLV2());
 
             if (isBuildingAnyPlugins)
             {
@@ -68,6 +69,11 @@ protected:
                     props.add (new TextPropertyComponentWithEnablement (vst3BinaryLocation, pluginBinaryCopyStepValue, "VST3 Binary Location",
                                                                         1024, false),
                                "The folder in which the compiled VST3 binary should be placed.");
+
+                if (project.shouldBuildLV2())
+                    props.add (new TextPropertyComponentWithEnablement (lv2BinaryLocation, pluginBinaryCopyStepValue, "LV2 Binary Location",
+                                                                        1024, false),
+                               "The folder in which the compiled LV2 binary should be placed.");
 
                 if (project.shouldBuildUnityPlugin())
                     props.add (new TextPropertyComponentWithEnablement (unityPluginBinaryLocation, pluginBinaryCopyStepValue, "Unity Binary Location",
@@ -103,11 +109,13 @@ protected:
         bool isPluginBinaryCopyStepEnabled() const         { return pluginBinaryCopyStepValue.get(); }
         String getVSTBinaryLocationString() const          { return vstBinaryLocation.get(); }
         String getVST3BinaryLocationString() const         { return vst3BinaryLocation.get(); }
+        String getLV2BinaryLocationString() const          { return lv2BinaryLocation.get(); }
         String getUnityPluginBinaryLocationString() const  { return unityPluginBinaryLocation.get(); }
 
     private:
         //==============================================================================
-        ValueWithDefault architectureTypeValue, pluginBinaryCopyStepValue, vstBinaryLocation, vst3BinaryLocation, unityPluginBinaryLocation;
+        ValueTreePropertyWithDefault architectureTypeValue, pluginBinaryCopyStepValue,
+                                     vstBinaryLocation, vst3BinaryLocation, lv2BinaryLocation, unityPluginBinaryLocation;
     };
 
     BuildConfiguration::Ptr createBuildConfig (const ValueTree& tree) const override
@@ -186,7 +194,7 @@ public:
             if (! ldflags.isEmpty())
                 s.add ("JUCE_LDFLAGS_" + getTargetVarName() + " := " + ldflags.joinIntoString (" "));
 
-            auto targetName = owner.replacePreprocessorTokens (config, config.getTargetBinaryNameString());
+            auto targetName = owner.replacePreprocessorTokens (config, config.getTargetBinaryNameString (type == UnityPlugIn));
 
             if (owner.projectType.isStaticLibrary())
                 targetName = getStaticLibbedFilename (targetName);
@@ -197,7 +205,7 @@ public:
 
             if (type == VST3PlugIn)
             {
-                s.add ("JUCE_VST3DIR := " + escapeSpaces (targetName).upToLastOccurrenceOf (".", false, false) + ".vst3");
+                s.add ("JUCE_VST3DIR := " + escapeQuotesAndSpaces (targetName).upToLastOccurrenceOf (".", false, false) + ".vst3");
                 s.add ("VST3_PLATFORM_ARCH := $(shell $(CXX) make_helpers/arch_detection.cpp 2>&1 | tr '\\n' ' ' | sed \"s/.*JUCE_ARCH \\([a-zA-Z0-9_-]*\\).*/\\1/\")");
                 s.add ("JUCE_VST3SUBDIR := Contents/$(VST3_PLATFORM_ARCH)-linux");
 
@@ -208,10 +216,23 @@ public:
                 s.add ("JUCE_UNITYDIR := Unity");
                 targetName = "$(JUCE_UNITYDIR)/" + targetName;
             }
+            else if (type == LV2PlugIn)
+            {
+                s.add ("JUCE_LV2DIR := " + escapeQuotesAndSpaces (targetName) + ".lv2");
+                targetName = "$(JUCE_LV2DIR)/" + targetName + ".so";
+            }
+            else if (type == LV2TurtleProgram)
+            {
+                targetName = Project::getLV2FileWriterName();
+            }
 
-            s.add ("JUCE_TARGET_" + getTargetVarName() + String (" := ") + escapeSpaces (targetName));
+            s.add ("JUCE_TARGET_" + getTargetVarName() + String (" := ") + escapeQuotesAndSpaces (targetName));
 
-            if (config.isPluginBinaryCopyStepEnabled() && (type == VST3PlugIn || type == VSTPlugIn || type == UnityPlugIn))
+            if (type == LV2PlugIn)
+                s.add ("JUCE_LV2_FULL_PATH := $(JUCE_OUTDIR)/$(JUCE_TARGET_LV2_PLUGIN)");
+
+            if (config.isPluginBinaryCopyStepEnabled()
+                && (type == VST3PlugIn || type == VSTPlugIn || type == UnityPlugIn || type == LV2PlugIn))
             {
                 String copyCmd ("JUCE_COPYCMD_" + getTargetVarName() + String (" := $(JUCE_OUTDIR)/"));
 
@@ -223,12 +244,17 @@ public:
                 else if (type == VSTPlugIn)
                 {
                     s.add ("JUCE_VSTDESTDIR := " + config.getVSTBinaryLocationString());
-                    s.add (copyCmd + escapeSpaces (targetName) + " $(JUCE_VSTDESTDIR)");
+                    s.add (copyCmd + escapeQuotesAndSpaces (targetName) + " $(JUCE_VSTDESTDIR)");
                 }
                 else if (type == UnityPlugIn)
                 {
                     s.add ("JUCE_UNITYDESTDIR := " + config.getUnityPluginBinaryLocationString());
                     s.add (copyCmd + "$(JUCE_UNITYDIR)/. $(JUCE_UNITYDESTDIR)");
+                }
+                else if (type == LV2PlugIn)
+                {
+                    s.add ("JUCE_LV2DESTDIR := " + config.getLV2BinaryLocationString());
+                    s.add (copyCmd + "$(JUCE_LV2DIR) $(JUCE_LV2DESTDIR)");
                 }
             }
 
@@ -251,32 +277,30 @@ public:
             return String (getName()).toUpperCase().replaceCharacter (L' ', L'_');
         }
 
-        void writeObjects (OutputStream& out, const Array<std::pair<File, String>>& filesToCompile) const
+        void writeObjects (OutputStream& out, const std::vector<std::pair<build_tools::RelativePath, String>>& filesToCompile) const
         {
             out << "OBJECTS_" + getTargetVarName() + String (" := \\") << newLine;
 
             for (auto& f : filesToCompile)
-                out << "  $(JUCE_OBJDIR)/" << escapeSpaces (owner.getObjectFileFor ({ f.first, owner.getTargetFolder(), build_tools::RelativePath::buildTargetFolder }))
+                out << "  $(JUCE_OBJDIR)/" << escapeQuotesAndSpaces (owner.getObjectFileFor (f.first))
                     << " \\" << newLine;
 
             out << newLine;
         }
 
-        void addFiles (OutputStream& out, const Array<std::pair<File, String>>& filesToCompile)
+        void addFiles (OutputStream& out, const std::vector<std::pair<build_tools::RelativePath, String>>& filesToCompile)
         {
             auto cppflagsVarName = "JUCE_CPPFLAGS_" + getTargetVarName();
             auto cflagsVarName   = "JUCE_CFLAGS_"   + getTargetVarName();
 
-            for (auto& f : filesToCompile)
+            for (auto& [path, flags] : filesToCompile)
             {
-                build_tools::RelativePath relativePath (f.first, owner.getTargetFolder(), build_tools::RelativePath::buildTargetFolder);
-
-                out << "$(JUCE_OBJDIR)/" << escapeSpaces (owner.getObjectFileFor (relativePath)) << ": " << escapeSpaces (relativePath.toUnixStyle()) << newLine
-                    << "\t-$(V_AT)mkdir -p $(JUCE_OBJDIR)"                                                                                            << newLine
-                    << "\t@echo \"Compiling " << relativePath.getFileName() << "\""                                                                   << newLine
-                    << (relativePath.hasFileExtension ("c;s;S") ? "\t$(V_AT)$(CC) $(JUCE_CFLAGS) " : "\t$(V_AT)$(CXX) $(JUCE_CXXFLAGS) ")
+                out << "$(JUCE_OBJDIR)/" << escapeQuotesAndSpaces (owner.getObjectFileFor (path)) << ": " << escapeQuotesAndSpaces (path.toUnixStyle()) << newLine
+                    << "\t-$(V_AT)mkdir -p $(@D)"                                                                                                       << newLine
+                    << "\t@echo \"Compiling " << path.getFileName() << "\""                                                                             << newLine
+                    << (path.hasFileExtension ("c;s;S") ? "\t$(V_AT)$(CC) $(JUCE_CFLAGS) " : "\t$(V_AT)$(CXX) $(JUCE_CXXFLAGS) ")
                     << "$(" << cppflagsVarName << ") $(" << cflagsVarName << ")"
-                    << (f.second.isNotEmpty() ? " $(" + owner.getCompilerFlagSchemeVariableName (f.second) + ")" : "") << " -o \"$@\" -c \"$<\""      << newLine
+                    << (flags.isNotEmpty() ? " $(" + owner.getCompilerFlagSchemeVariableName (flags) + ")" : "") << " -o \"$@\" -c \"$<\""              << newLine
                     << newLine;
             }
         }
@@ -288,6 +312,9 @@ public:
 
         String getPhonyName() const
         {
+            if (type == LV2TurtleProgram)
+                return "LV2_MANIFEST_HELPER";
+
             return String (getName()).upToFirstOccurrenceOf (" ", false, false);
         }
 
@@ -296,17 +323,20 @@ public:
             jassert (type != AggregateTarget);
 
             out << getBuildProduct() << " : "
-                << "$(OBJECTS_" << getTargetVarName() << ") $(RESOURCES)";
+                << "$(OBJECTS_" << getTargetVarName() << ") $(JUCE_OBJDIR)/execinfo.cmd $(RESOURCES)";
 
             if (type != SharedCodeTarget && owner.shouldBuildTargetType (SharedCodeTarget))
                 out << " $(JUCE_OUTDIR)/$(JUCE_TARGET_SHARED_CODE)";
+
+            if (type == LV2PlugIn)
+                out << " $(JUCE_OUTDIR)/$(JUCE_TARGET_LV2_MANIFEST_HELPER)";
 
             out << newLine;
 
             if (! packages.isEmpty())
             {
-                out << "\t@command -v pkg-config >/dev/null 2>&1 || { echo >&2 \"pkg-config not installed. Please, install it.\"; exit 1; }" << newLine
-                    << "\t@pkg-config --print-errors";
+                out << "\t@command -v $(PKG_CONFIG) >/dev/null 2>&1 || { echo >&2 \"pkg-config not installed. Please, install it.\"; exit 1; }" << newLine
+                    << "\t@$(PKG_CONFIG) --print-errors";
 
                 for (auto& pkg : packages)
                     out << " " << pkg;
@@ -323,6 +353,8 @@ public:
                 out << "\t-$(V_AT)mkdir -p $(JUCE_OUTDIR)/$(JUCE_VST3DIR)/$(JUCE_VST3SUBDIR)" << newLine;
             else if (type == UnityPlugIn)
                 out << "\t-$(V_AT)mkdir -p $(JUCE_OUTDIR)/$(JUCE_UNITYDIR)" << newLine;
+            else if (type == LV2PlugIn)
+                out << "\t-$(V_AT)mkdir -p $(JUCE_OUTDIR)/$(JUCE_LV2DIR)" << newLine;
 
             if (owner.projectType.isStaticLibrary() || type == SharedCodeTarget)
             {
@@ -337,7 +369,7 @@ public:
                 if (owner.shouldBuildTargetType (SharedCodeTarget))
                     out << "$(JUCE_OUTDIR)/$(JUCE_TARGET_SHARED_CODE) ";
 
-                out << "$(JUCE_LDFLAGS) ";
+                out << "$(JUCE_LDFLAGS) $(shell cat $(JUCE_OBJDIR)/execinfo.cmd) ";
 
                 if (getTargetFileType() == sharedLibraryOrDLL || getTargetFileType() == pluginBundle
                         || type == GUIApp || type == StandalonePlugIn)
@@ -348,13 +380,11 @@ public:
 
             if (type == VST3PlugIn)
             {
-                out << "\t-$(V_AT)mkdir -p $(JUCE_VST3DESTDIR)" << newLine
-                    << "\t-$(V_AT)cp -R $(JUCE_COPYCMD_VST3)"   << newLine;
+                out << "\t-$(V_AT)[ ! \"$(JUCE_VST3DESTDIR)\" ] || (mkdir -p $(JUCE_VST3DESTDIR) && cp -R $(JUCE_COPYCMD_VST3))" << newLine;
             }
             else if (type == VSTPlugIn)
             {
-                out << "\t-$(V_AT)mkdir -p $(JUCE_VSTDESTDIR)" << newLine
-                    << "\t-$(V_AT)cp -R $(JUCE_COPYCMD_VST)"   << newLine;
+                out << "\t-$(V_AT)[ ! \"$(JUCE_VSTDESTDIR)\" ]  || (mkdir -p $(JUCE_VSTDESTDIR)  && cp -R $(JUCE_COPYCMD_VST))"  << newLine;
             }
             else if (type == UnityPlugIn)
             {
@@ -365,8 +395,12 @@ public:
                                                       build_tools::RelativePath::projectFolder);
 
                 out << "\t-$(V_AT)cp " + scriptPath.toUnixStyle() + " $(JUCE_OUTDIR)/$(JUCE_UNITYDIR)" << newLine
-                    << "\t-$(V_AT)mkdir -p $(JUCE_UNITYDESTDIR)"                                       << newLine
-                    << "\t-$(V_AT)cp -R $(JUCE_COPYCMD_UNITY_PLUGIN)"                                  << newLine;
+                    << "\t-$(V_AT)[ ! \"$(JUCE_UNITYDESTDIR)\" ] || (mkdir -p $(JUCE_UNITYDESTDIR) && cp -R $(JUCE_COPYCMD_UNITY_PLUGIN))" << newLine;
+            }
+            else if (type == LV2PlugIn)
+            {
+                out << "\t$(V_AT) $(JUCE_OUTDIR)/$(JUCE_TARGET_LV2_MANIFEST_HELPER) $(JUCE_LV2_FULL_PATH)" << newLine
+                    << "\t-$(V_AT)[ ! \"$(JUCE_LV2DESTDIR)\" ] || (mkdir -p $(JUCE_LV2DESTDIR) && cp -R $(JUCE_COPYCMD_LV2_PLUGIN))" << newLine;
             }
 
             out << newLine;
@@ -411,7 +445,6 @@ public:
     bool isCodeBlocks() const override                      { return false; }
     bool isMakefile() const override                        { return true; }
     bool isAndroidStudio() const override                   { return false; }
-    bool isCLion() const override                           { return false; }
 
     bool isAndroid() const override                         { return false; }
     bool isWindows() const override                         { return false; }
@@ -423,24 +456,27 @@ public:
 
     bool supportsTargetType (build_tools::ProjectType::Target::Type type) const override
     {
+        using Target = build_tools::ProjectType::Target;
+
         switch (type)
         {
-            case build_tools::ProjectType::Target::GUIApp:
-            case build_tools::ProjectType::Target::ConsoleApp:
-            case build_tools::ProjectType::Target::StaticLibrary:
-            case build_tools::ProjectType::Target::SharedCodeTarget:
-            case build_tools::ProjectType::Target::AggregateTarget:
-            case build_tools::ProjectType::Target::VSTPlugIn:
-            case build_tools::ProjectType::Target::VST3PlugIn:
-            case build_tools::ProjectType::Target::StandalonePlugIn:
-            case build_tools::ProjectType::Target::DynamicLibrary:
-            case build_tools::ProjectType::Target::UnityPlugIn:
+            case Target::GUIApp:
+            case Target::ConsoleApp:
+            case Target::StaticLibrary:
+            case Target::SharedCodeTarget:
+            case Target::AggregateTarget:
+            case Target::VSTPlugIn:
+            case Target::VST3PlugIn:
+            case Target::StandalonePlugIn:
+            case Target::DynamicLibrary:
+            case Target::UnityPlugIn:
+            case Target::LV2PlugIn:
+            case Target::LV2TurtleProgram:
                 return true;
-            case build_tools::ProjectType::Target::AAXPlugIn:
-            case build_tools::ProjectType::Target::RTASPlugIn:
-            case build_tools::ProjectType::Target::AudioUnitPlugIn:
-            case build_tools::ProjectType::Target::AudioUnitv3PlugIn:
-            case build_tools::ProjectType::Target::unspecified:
+            case Target::AAXPlugIn:
+            case Target::AudioUnitPlugIn:
+            case Target::AudioUnitv3PlugIn:
+            case Target::unspecified:
             default:
                 break;
         }
@@ -458,6 +494,9 @@ public:
     {
         vstLegacyPathValueWrapper.init ({ settings, Ids::vstLegacyFolder, nullptr },
                                           getAppSettings().getStoredPath (Ids::vstLegacyPath, TargetOS::linux), TargetOS::linux);
+
+        araPathValueWrapper.init ({ settings, Ids::araFolder, nullptr },
+                                  getAppSettings().getStoredPath (Ids::araPath, TargetOS::linux), TargetOS::linux);
     }
 
     //==============================================================================
@@ -508,7 +547,7 @@ public:
     }
 
 private:
-    ValueWithDefault extraPkgConfigValue;
+    ValueTreePropertyWithDefault extraPkgConfigValue;
 
     //==============================================================================
     StringPairArray getDefines (const BuildConfiguration& config) const
@@ -561,7 +600,7 @@ private:
         auto compilePackages = getCompilePackages();
 
         if (compilePackages.size() > 0)
-            return "$(shell pkg-config --cflags " + compilePackages.joinIntoString (" ") + ")";
+            return "$(shell $(PKG_CONFIG) --cflags " + compilePackages.joinIntoString (" ") + ")";
 
         return {};
     }
@@ -571,7 +610,7 @@ private:
         auto linkPackages = getLinkPackages();
 
         if (linkPackages.size() > 0)
-            return "$(shell pkg-config --libs " + linkPackages.joinIntoString (" ") + ")";
+            return "$(shell $(PKG_CONFIG) --libs " + linkPackages.joinIntoString (" ") + ")";
 
         return {};
     }
@@ -604,10 +643,10 @@ private:
         if (config.isLinkTimeOptimisationEnabled())
             result.add ("-flto");
 
-        for (auto& recommended : config.getRecommendedCompilerWarningFlags())
+        for (auto& recommended : config.getRecommendedCompilerWarningFlags().common)
             result.add (recommended);
 
-        auto extra = replacePreprocessorTokens (config, getExtraCompilerFlagsString()).trim();
+        auto extra = replacePreprocessorTokens (config, config.getAllCompilerFlagsString()).trim();
 
         if (extra.isNotEmpty())
             result.add (extra);
@@ -615,18 +654,19 @@ private:
         return result;
     }
 
-    StringArray getCXXFlags() const
+    StringArray getCXXFlags (const BuildConfiguration& config) const
     {
         StringArray result;
+
+        for (auto& recommended : config.getRecommendedCompilerWarningFlags().cpp)
+            result.add (recommended);
 
         auto cppStandard = project.getCppStandardString();
 
         if (cppStandard == "latest")
-            cppStandard = "17";
+            cppStandard = project.getLatestNumberedCppStandardString();
 
-        cppStandard = "-std=" + String (shouldUseGNUExtensions() ? "gnu++" : "c++") + cppStandard;
-
-        result.add (cppStandard);
+        result.add ("-std=" + String (shouldUseGNUExtensions() ? "gnu++" : "c++") + cppStandard);
 
         return result;
     }
@@ -677,7 +717,7 @@ private:
         if (config.isLinkTimeOptimisationEnabled())
             result.add ("-flto");
 
-        auto extraFlags = getExtraLinkerFlagsString().trim();
+        const auto extraFlags = config.getAllLinkerFlagsString().trim();
 
         if (extraFlags.isNotEmpty())
             result.add (replacePreprocessorTokens (config, extraFlags));
@@ -710,7 +750,7 @@ private:
     void writeHeaderPathFlags (OutputStream& out, const BuildConfiguration& config) const
     {
         for (auto& path : getHeaderSearchPaths (config))
-            out << " -I" << escapeSpaces (path).replace ("~", "$(HOME)");
+            out << " -I" << escapeQuotesAndSpaces (path).replace ("~", "$(HOME)");
     }
 
     void writeCppFlags (OutputStream& out, const MakeBuildConfiguration& config) const
@@ -728,7 +768,7 @@ private:
         out << "  JUCE_LDFLAGS += $(TARGET_ARCH) -L$(JUCE_BINDIR) -L$(JUCE_LIBDIR)";
 
         for (auto path : getLibrarySearchPaths (config))
-            out << " -L" << escapeSpaces (path).replace ("~", "$(HOME)");
+            out << " -L" << escapeQuotesAndSpaces (path).replace ("~", "$(HOME)");
 
         auto pkgConfigFlags = getLinkerPkgConfigFlags();
 
@@ -801,11 +841,11 @@ private:
             outputDir = binaryPath.rebased (projectFolder, getTargetFolder(), build_tools::RelativePath::buildTargetFolder).toUnixStyle();
         }
 
-        out << "ifeq ($(CONFIG)," << escapeSpaces (config.getName()) << ")" << newLine
-            << "  JUCE_BINDIR := " << escapeSpaces (buildDirName)           << newLine
-            << "  JUCE_LIBDIR := " << escapeSpaces (buildDirName)           << newLine
-            << "  JUCE_OBJDIR := " << escapeSpaces (intermediatesDirName)   << newLine
-            << "  JUCE_OUTDIR := " << escapeSpaces (outputDir)              << newLine
+        out << "ifeq ($(CONFIG)," << escapeQuotesAndSpaces (config.getName()) << ")" << newLine
+            << "  JUCE_BINDIR := " << escapeQuotesAndSpaces (buildDirName)           << newLine
+            << "  JUCE_LIBDIR := " << escapeQuotesAndSpaces (buildDirName)           << newLine
+            << "  JUCE_OBJDIR := " << escapeQuotesAndSpaces (intermediatesDirName)   << newLine
+            << "  JUCE_OUTDIR := " << escapeQuotesAndSpaces (outputDir)              << newLine
             << newLine
             << "  ifeq ($(TARGET_ARCH),)"                                   << newLine
             << "    TARGET_ARCH := " << getArchFlags (config)               << newLine
@@ -835,7 +875,7 @@ private:
 
         out << "  JUCE_CXXFLAGS += $(JUCE_CFLAGS)";
 
-        auto cxxflags = getCXXFlags().joinIntoString (" ");
+        auto cxxflags = getCXXFlags (config).joinIntoString (" ");
 
         if (cxxflags.isNotEmpty())
             out << " " << cxxflags;
@@ -870,12 +910,19 @@ private:
 
     static String getCompilerFlagSchemeVariableName (const String& schemeName)   { return "JUCE_COMPILERFLAGSCHEME_" + schemeName; }
 
-    void findAllFilesToCompile (const Project::Item& projectItem, Array<std::pair<File, String>>& results) const
+    std::vector<std::pair<File, String>> findAllFilesToCompile (const Project::Item& projectItem) const
     {
+        std::vector<std::pair<File, String>> results;
+
         if (projectItem.isGroup())
         {
             for (int i = 0; i < projectItem.getNumChildren(); ++i)
-                findAllFilesToCompile (projectItem.getChild (i), results);
+            {
+                auto inner = findAllFilesToCompile (projectItem.getChild (i));
+                results.insert (results.end(),
+                                std::make_move_iterator (inner.cbegin()),
+                                std::make_move_iterator (inner.cend()));
+            }
         }
         else
         {
@@ -886,33 +933,35 @@ private:
                 if (shouldFileBeCompiledByDefault (f))
                 {
                     auto scheme = projectItem.getCompilerFlagSchemeString();
-                    auto flags = compilerFlagSchemesMap[scheme].get().toString();
+                    auto flags = getCompilerFlagsForProjectItem (projectItem);
 
                     if (scheme.isNotEmpty() && flags.isNotEmpty())
-                        results.add ({ f, scheme });
+                        results.emplace_back (f, scheme);
                     else
-                        results.add ({ f, {} });
+                        results.emplace_back (f, String{});
                 }
             }
         }
+
+        return results;
     }
 
-    void writeCompilerFlagSchemes (OutputStream& out, const Array<std::pair<File, String>>& filesToCompile) const
+    void writeCompilerFlagSchemes (OutputStream& out, const std::vector<std::pair<File, String>>& filesToCompile) const
     {
-        StringArray schemesToWrite;
+        std::set<String> schemesToWrite;
 
-        for (auto& f : filesToCompile)
-            if (f.second.isNotEmpty())
-                schemesToWrite.addIfNotAlreadyThere (f.second);
+        for (const auto& pair : filesToCompile)
+            if (pair.second.isNotEmpty())
+                schemesToWrite.insert (pair.second);
 
-        if (! schemesToWrite.isEmpty())
-        {
-            for (auto& s : schemesToWrite)
-                out << getCompilerFlagSchemeVariableName (s) << " := "
-                    << compilerFlagSchemesMap[s].get().toString() << newLine;
+        if (schemesToWrite.empty())
+            return;
 
-            out << newLine;
-        }
+        for (const auto& s : schemesToWrite)
+            if (const auto flags = getCompilerFlagsForFileCompilerFlagScheme (s); flags.isNotEmpty())
+                out << getCompilerFlagSchemeVariableName (s) << " := " << flags << newLine;
+
+        out << newLine;
     }
 
     void writeMakefile (OutputStream& out) const
@@ -933,6 +982,11 @@ private:
             << "DEPFLAGS := $(if $(word 2, $(TARGET_ARCH)), , -MMD)"                       << newLine
             << newLine;
 
+        out << "ifndef PKG_CONFIG"       << newLine
+            << "  PKG_CONFIG=pkg-config" << newLine
+            << "endif"                   << newLine
+            << newLine;
+
         out << "ifndef STRIP"  << newLine
             << "  STRIP=strip" << newLine
             << "endif"         << newLine
@@ -943,9 +997,9 @@ private:
             << "endif"     << newLine
             << newLine;
 
-        out << "ifndef CONFIG"                                              << newLine
-            << "  CONFIG=" << escapeSpaces (getConfiguration(0)->getName()) << newLine
-            << "endif"                                                      << newLine
+        out << "ifndef CONFIG"                                                       << newLine
+            << "  CONFIG=" << escapeQuotesAndSpaces (getConfiguration(0)->getName()) << newLine
+            << "endif"                                                               << newLine
             << newLine;
 
         out << "JUCE_ARCH_LABEL := $(shell uname -m)" << newLine
@@ -954,24 +1008,44 @@ private:
         for (ConstConfigIterator config (*this); config.next();)
             writeConfig (out, dynamic_cast<const MakeBuildConfiguration&> (*config));
 
-        Array<std::pair<File, String>> filesToCompile;
+        std::vector<std::pair<File, String>> filesToCompile;
 
         for (int i = 0; i < getAllGroups().size(); ++i)
-            findAllFilesToCompile (getAllGroups().getReference (i), filesToCompile);
+        {
+            auto group = findAllFilesToCompile (getAllGroups().getReference (i));
+            filesToCompile.insert (filesToCompile.end(),
+                                   std::make_move_iterator (group.cbegin()),
+                                   std::make_move_iterator (group.cend()));
+        }
 
         writeCompilerFlagSchemes (out, filesToCompile);
 
-        auto getFilesForTarget = [] (const Array<std::pair<File, String>>& files,
-                                     MakefileTarget* target,
-                                     const Project& p) -> Array<std::pair<File, String>>
+        const auto getFilesForTarget = [this] (const std::vector<std::pair<File, String>>& files,
+                                               MakefileTarget* target,
+                                               const Project& p)
         {
-            Array<std::pair<File, String>> targetFiles;
+            std::vector<std::pair<build_tools::RelativePath, String>> targetFiles;
 
             auto targetType = (p.isAudioPluginProject() ? target->type : MakefileTarget::SharedCodeTarget);
 
-            for (auto& f : files)
-                if (p.getTargetTypeFromFilePath (f.first, true) == targetType)
-                    targetFiles.add (f);
+            for (auto& [path, flags] : files)
+            {
+                if (p.getTargetTypeFromFilePath (path, true) == targetType)
+                {
+                    targetFiles.emplace_back (build_tools::RelativePath { path,
+                                                                          getTargetFolder(),
+                                                                          build_tools::RelativePath::buildTargetFolder },
+                                              flags);
+                }
+            }
+
+            if (targetType == MakefileTarget::LV2TurtleProgram)
+            {
+                targetFiles.emplace_back (getLV2TurtleDumpProgramSource().rebased (projectFolder,
+                                                                                   getTargetFolder(),
+                                                                                   build_tools::RelativePath::buildTargetFolder),
+                                          String{});
+            }
 
             return targetFiles;
         };
@@ -985,6 +1059,13 @@ private:
 
         for (auto target : targets)
             target->addFiles (out, getFilesForTarget (filesToCompile, target, project));
+
+        // libexecinfo is a separate library on BSD
+        out << "$(JUCE_OBJDIR)/execinfo.cmd:" << newLine
+            << "\t-$(V_AT)mkdir -p $(@D)" << newLine
+            << "\t-@if [ -z \"$(V_AT)\" ]; then echo \"Checking if we need to link libexecinfo\"; fi" << newLine
+            << "\t$(V_AT)printf \"int main() { return 0; }\" | $(CXX) -x c++ -o $(@D)/execinfo.x -lexecinfo - >/dev/null 2>&1 && printf -- \"-lexecinfo\" > \"$@\" || touch \"$@\"" << newLine
+            << newLine;
 
         out << "clean:"                           << newLine
             << "\t@echo Cleaning " << projectName << newLine
@@ -1029,8 +1110,6 @@ private:
 
         return phonyTargetLine.toString();
     }
-
-    friend class CLionProjectExporter;
 
     OwnedArray<MakefileTarget> targets;
 

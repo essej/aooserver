@@ -8,11 +8,26 @@
 
 namespace BinaryData
 {
-    extern const char*   JUCEAppIcon_png;
-    const int            JUCEAppIcon_pngSize = 47266;
+    extern const char*   cassette_recorder_wav;
+    const int            cassette_recorder_wavSize = 37902;
+
+    extern const char*   cello_wav;
+    const int            cello_wavSize = 46348;
+
+    extern const char*   guitar_amp_wav;
+    const int            guitar_amp_wavSize = 90246;
+
+    extern const char*   proaudio_path;
+    const int            proaudio_pathSize = 452;
+
+    extern const char*   reverb_ir_wav;
+    const int            reverb_ir_wavSize = 648404;
+
+    extern const char*   singing_ogg;
+    const int            singing_oggSize = 15354;
 
     // Number of elements in the namedResourceList and originalFileNames arrays.
-    const int namedResourceListSize = 1;
+    const int namedResourceListSize = 6;
 
     // Points to the start of a list of resource names.
     extern const char* namedResourceList[];

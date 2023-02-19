@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -142,7 +142,7 @@ public:
         */
         DialogWindow* create();
 
-       #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
+       #if JUCE_MODAL_LOOPS_PERMITTED
         /** Launches and runs the dialog modally, returning the status code that was
             used to terminate the modal loop.
 
@@ -201,7 +201,7 @@ public:
                             bool shouldBeResizable = false,
                             bool useBottomRightCornerResizer = false);
 
-   #if JUCE_MODAL_LOOPS_PERMITTED || DOXYGEN
+   #if JUCE_MODAL_LOOPS_PERMITTED
     /** Easy way of quickly showing a dialog box containing a given component.
 
         Note: This method has been superseded by the DialogWindow::LaunchOptions structure,
@@ -255,6 +255,9 @@ public:
     */
     virtual bool escapeKeyPressed();
 
+    /** @internal */
+    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+
 protected:
     //==============================================================================
     /** @internal */
@@ -262,9 +265,7 @@ protected:
     /** @internal */
     bool keyPressed (const KeyPress&) override;
     /** @internal */
-    float getDesktopScaleFactor() const override { return desktopScale; }
-    /** @internal */
-    std::unique_ptr<AccessibilityHandler> createAccessibilityHandler() override;
+    float getDesktopScaleFactor() const override { return desktopScale * Desktop::getInstance().getGlobalScaleFactor(); }
 
 private:
     float desktopScale = 1.0f;

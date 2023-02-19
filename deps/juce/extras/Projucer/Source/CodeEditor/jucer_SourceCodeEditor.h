@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -80,8 +80,9 @@ public:
     }
 
     void reloadFromFile() override;
-    bool save() override;
-    bool saveAs() override;
+    bool saveSyncWithoutAsking() override;
+    void saveAsync (std::function<void (bool)>) override;
+    void saveAsAsync (std::function<void (bool)>) override;
 
     std::unique_ptr<Component> createEditor() override;
     std::unique_ptr<Component> createViewer() override  { return createEditor(); }
@@ -132,6 +133,9 @@ protected:
     std::unique_ptr<CodeEditorComponent::State> lastState;
 
     void reloadInternal();
+
+private:
+    std::unique_ptr<FileChooser> chooser;
 };
 
 class GenericCodeEditorComponent;
@@ -234,6 +238,8 @@ public:
 
 private:
     void insertComponentClass();
+
+    std::unique_ptr<AlertWindow> asyncAlertWindow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CppCodeEditorComponent)
 };

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -67,6 +67,7 @@
 #include "interprocess/juce_InterprocessConnectionServer.cpp"
 #include "interprocess/juce_ConnectedChildProcess.cpp"
 #include "interprocess/juce_NetworkServiceDiscovery.cpp"
+#include "native/juce_ScopedLowPowerModeDisabler.cpp"
 
 //==============================================================================
 #if JUCE_MAC || JUCE_IOS
@@ -86,6 +87,7 @@
  #endif
 
 #elif JUCE_LINUX || JUCE_BSD
+ #include "native/juce_linux_EventLoopInternal.h"
  #include "native/juce_linux_Messaging.cpp"
 
 #elif JUCE_ANDROID

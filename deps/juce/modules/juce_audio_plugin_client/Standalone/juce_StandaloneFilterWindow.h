@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -124,7 +124,7 @@ public:
     //==============================================================================
     virtual void createPlugin()
     {
-        processor.reset (createPluginFilterOfType (AudioProcessor::wrapperType_Standalone));
+        processor = createPluginFilterOfType (AudioProcessor::wrapperType_Standalone);
         processor->disableNonMainBuses();
         processor->setRateAndBufferSizeDetails (44100, 512);
 
@@ -191,11 +191,18 @@ public:
     /** Pops up a dialog letting the user save the processor's state to a file. */
     void askUserToSaveState (const String& fileSuffix = String())
     {
-       #if JUCE_MODAL_LOOPS_PERMITTED
-        FileChooser fc (TRANS("Save current state"), getLastFile(), getFilePatterns (fileSuffix));
+        stateFileChooser = std::make_unique<FileChooser> (TRANS("Save current state"),
+                                                          getLastFile(),
+                                                          getFilePatterns (fileSuffix));
+        auto flags = FileBrowserComponent::saveMode
+                   | FileBrowserComponent::canSelectFiles
+                   | FileBrowserComponent::warnAboutOverwriting;
 
-        if (fc.browseForFileToSave (true))
+        stateFileChooser->launchAsync (flags, [this] (const FileChooser& fc)
         {
+            if (fc.getResult() == File{})
+                return;
+
             setLastFile (fc);
 
             MemoryBlock data;
@@ -205,20 +212,23 @@ public:
                 AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon,
                                                   TRANS("Error whilst saving"),
                                                   TRANS("Couldn't write to the specified file!"));
-        }
-       #else
-        ignoreUnused (fileSuffix);
-       #endif
+        });
     }
 
     /** Pops up a dialog letting the user re-load the processor's state from a file. */
     void askUserToLoadState (const String& fileSuffix = String())
     {
-       #if JUCE_MODAL_LOOPS_PERMITTED
-        FileChooser fc (TRANS("Load a saved state"), getLastFile(), getFilePatterns (fileSuffix));
+        stateFileChooser = std::make_unique<FileChooser> (TRANS("Load a saved state"),
+                                                          getLastFile(),
+                                                          getFilePatterns (fileSuffix));
+        auto flags = FileBrowserComponent::openMode
+                   | FileBrowserComponent::canSelectFiles;
 
-        if (fc.browseForFileToOpen())
+        stateFileChooser->launchAsync (flags, [this] (const FileChooser& fc)
         {
+            if (fc.getResult() == File{})
+                return;
+
             setLastFile (fc);
 
             MemoryBlock data;
@@ -229,10 +239,7 @@ public:
                 AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon,
                                                   TRANS("Error whilst loading"),
                                                   TRANS("Couldn't read from the specified file!"));
-        }
-       #else
-        ignoreUnused (fileSuffix);
-       #endif
+        });
     }
 
     //==============================================================================
@@ -276,8 +283,11 @@ public:
         if (auto* bus = processor->getBus (false, 0))
             maxNumOutputs = jmax (0, bus->getDefaultLayout().size());
 
-        o.content.setOwned (new SettingsComponent (*this, deviceManager, maxNumInputs, maxNumOutputs));
-        o.content->setSize (500, 550);
+        auto content = std::make_unique<SettingsComponent> (*this, deviceManager, maxNumInputs, maxNumOutputs);
+        content->setSize (500, 550);
+        content->setToRecommendedSize();
+
+        o.content.setOwned (content.release());
 
         o.dialogTitle                   = TRANS("Audio/MIDI Settings");
         o.dialogBackgroundColour        = o.content->getLookAndFeel().findColour (ResizableWindow::backgroundColourId);
@@ -376,13 +386,12 @@ public:
         return false;
     }
 
-    Image getIAAHostIcon (int size)
+    Image getIAAHostIcon ([[maybe_unused]] int size)
     {
        #if JUCE_IOS && JucePlugin_Enable_IAA
         if (auto device = dynamic_cast<iOSAudioIODevice*> (deviceManager.getCurrentAudioDevice()))
             return device->getIcon (size);
        #else
-        ignoreUnused (size);
        #endif
 
         return {};
@@ -407,13 +416,15 @@ public:
     std::unique_ptr<AudioDeviceManager::AudioDeviceSetup> options;
     Array<MidiDeviceInfo> lastMidiDevices;
 
+    std::unique_ptr<FileChooser> stateFileChooser;
+
 private:
     /*  This class can be used to ensure that audio callbacks use buffers with a
         predictable maximum size.
 
         On some platforms (such as iOS 10), the expected buffer size reported in
         audioDeviceAboutToStart may be smaller than the blocks passed to
-        audioDeviceIOCallback. This can lead to out-of-bounds reads if the render
+        audioDeviceIOCallbackWithContext. This can lead to out-of-bounds reads if the render
         callback depends on additional buffers which were initialised using the
         smaller size.
 
@@ -436,15 +447,15 @@ private:
             inner.audioDeviceAboutToStart (device);
         }
 
-        void audioDeviceIOCallback (const float** inputChannelData,
-                                    int numInputChannels,
-                                    float** outputChannelData,
-                                    int numOutputChannels,
-                                    int numSamples) override
+        void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
+                                               int numInputChannels,
+                                               float* const* outputChannelData,
+                                               int numOutputChannels,
+                                               int numSamples,
+                                               const AudioIODeviceCallbackContext& context) override
         {
-            jassert ((int) storedInputChannels.size()  == numInputChannels);
-            jassert ((int) storedOutputChannels.size() == numOutputChannels);
-            ignoreUnused (numInputChannels, numOutputChannels);
+            jassertquiet ((int) storedInputChannels.size()  == numInputChannels);
+            jassertquiet ((int) storedOutputChannels.size() == numOutputChannels);
 
             int position = 0;
 
@@ -455,11 +466,12 @@ private:
                 initChannelPointers (inputChannelData,  storedInputChannels,  position);
                 initChannelPointers (outputChannelData, storedOutputChannels, position);
 
-                inner.audioDeviceIOCallback (storedInputChannels.data(),
-                                             (int) storedInputChannels.size(),
-                                             storedOutputChannels.data(),
-                                             (int) storedOutputChannels.size(),
-                                             blockLength);
+                inner.audioDeviceIOCallbackWithContext (storedInputChannels.data(),
+                                                        (int) storedInputChannels.size(),
+                                                        storedOutputChannels.data(),
+                                                        (int) storedOutputChannels.size(),
+                                                        blockLength,
+                                                        context);
 
                 position += blockLength;
             }
@@ -534,6 +546,8 @@ private:
 
         void resized() override
         {
+            const ScopedValueSetter<bool> scope (isResizing, true);
+
             auto r = getLocalBounds();
 
             if (owner.getProcessorHasPotentialFeedbackLoop())
@@ -553,9 +567,12 @@ private:
 
         void childBoundsChanged (Component* childComp) override
         {
-            if (childComp != &deviceSelector)
-                return;
+            if (! isResizing && childComp == &deviceSelector)
+                setToRecommendedSize();
+        }
 
+        void setToRecommendedSize()
+        {
             const auto extraHeight = [&]
             {
                 if (! owner.getProcessorHasPotentialFeedbackLoop())
@@ -575,17 +592,19 @@ private:
         AudioDeviceSelectorComponent deviceSelector;
         Label shouldMuteLabel;
         ToggleButton shouldMuteButton;
+        bool isResizing = false;
 
         //==============================================================================
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SettingsComponent)
     };
 
     //==============================================================================
-    void audioDeviceIOCallback (const float** inputChannelData,
-                                int numInputChannels,
-                                float** outputChannelData,
-                                int numOutputChannels,
-                                int numSamples) override
+    void audioDeviceIOCallbackWithContext (const float* const* inputChannelData,
+                                           int numInputChannels,
+                                           float* const* outputChannelData,
+                                           int numOutputChannels,
+                                           int numSamples,
+                                           const AudioIODeviceCallbackContext& context) override
     {
         if (muteInput)
         {
@@ -593,8 +612,12 @@ private:
             inputChannelData = emptyBuffer.getArrayOfReadPointers();
         }
 
-        player.audioDeviceIOCallback (inputChannelData, numInputChannels,
-                                      outputChannelData, numOutputChannels, numSamples);
+        player.audioDeviceIOCallbackWithContext (inputChannelData,
+                                                 numInputChannels,
+                                                 outputChannelData,
+                                                 numOutputChannels,
+                                                 numSamples,
+                                                 context);
     }
 
     void audioDeviceAboutToStart (AudioIODevice* device) override
@@ -692,6 +715,8 @@ public:
         : DocumentWindow (title, backgroundColour, DocumentWindow::minimiseButton | DocumentWindow::closeButton),
           optionsButton ("Options")
     {
+        setConstrainer (&decoratorConstrainer);
+
        #if JUCE_IOS || JUCE_ANDROID
         setTitleBarHeight (0);
        #else
@@ -708,24 +733,42 @@ public:
 
        #if JUCE_IOS || JUCE_ANDROID
         setFullScreen (true);
-        setContentOwned (new MainContentComponent (*this), false);
+        updateContent();
        #else
-        setContentOwned (new MainContentComponent (*this), true);
+        updateContent();
 
-        if (auto* props = pluginHolder->settings.get())
+        const auto windowScreenBounds = [this]() -> Rectangle<int>
         {
-            const int x = props->getIntValue ("windowX", -100);
-            const int y = props->getIntValue ("windowY", -100);
+            const auto width = getWidth();
+            const auto height = getHeight();
 
-            if (x != -100 && y != -100)
-                setBoundsConstrained ({ x, y, getWidth(), getHeight() });
-            else
-                centreWithSize (getWidth(), getHeight());
-        }
-        else
-        {
-            centreWithSize (getWidth(), getHeight());
-        }
+            const auto& displays = Desktop::getInstance().getDisplays();
+
+            if (auto* props = pluginHolder->settings.get())
+            {
+                constexpr int defaultValue = -100;
+
+                const auto x = props->getIntValue ("windowX", defaultValue);
+                const auto y = props->getIntValue ("windowY", defaultValue);
+
+                if (x != defaultValue && y != defaultValue)
+                {
+                    const auto screenLimits = displays.getDisplayForRect ({ x, y, width, height })->userArea;
+
+                    return { jlimit (screenLimits.getX(), jmax (screenLimits.getX(), screenLimits.getRight()  - width),  x),
+                             jlimit (screenLimits.getY(), jmax (screenLimits.getY(), screenLimits.getBottom() - height), y),
+                             width, height };
+                }
+            }
+
+            const auto displayArea = displays.getPrimaryDisplay()->userArea;
+
+            return { displayArea.getCentreX() - width / 2,
+                     displayArea.getCentreY() - height / 2,
+                     width, height };
+        }();
+
+        setBoundsConstrained (windowScreenBounds);
 
         if (auto* processor = getAudioProcessor())
             if (auto* editor = processor->getActiveEditor())
@@ -763,7 +806,7 @@ public:
             props->removeValue ("filterState");
 
         pluginHolder->createPlugin();
-        setContentOwned (new MainContentComponent (*this), true);
+        updateContent();
         pluginHolder->startPlaying();
     }
 
@@ -804,6 +847,20 @@ public:
     std::unique_ptr<StandalonePluginHolder> pluginHolder;
 
 private:
+    void updateContent()
+    {
+        auto* content = new MainContentComponent (*this);
+        decoratorConstrainer.setMainContentComponent (content);
+
+       #if JUCE_IOS || JUCE_ANDROID
+        constexpr auto resizeAutomatically = false;
+       #else
+        constexpr auto resizeAutomatically = true;
+       #endif
+
+        setContentOwned (content, resizeAutomatically);
+    }
+
     void buttonClicked (Button*) override
     {
         PopupMenu m;
@@ -830,7 +887,7 @@ private:
               editor (owner.getAudioProcessor()->hasEditor() ? owner.getAudioProcessor()->createEditorIfNeeded()
                                                              : new GenericAudioProcessorEditor (*owner.getAudioProcessor()))
         {
-            Value& inputMutedValue = owner.pluginHolder->getMuteInputValue();
+            inputMutedValue.referTo (owner.pluginHolder->getMuteInputValue());
 
             if (editor != nullptr)
             {
@@ -869,9 +926,37 @@ private:
                 notification.setBounds (r.removeFromTop (NotificationArea::height));
 
             if (editor != nullptr)
-                editor->setBoundsConstrained (editor->getLocalArea (this, r.toFloat())
-                                                     .withPosition (r.getTopLeft().toFloat().transformedBy (editor->getTransform().inverted()))
-                                                .toNearestInt());
+            {
+                const auto newPos = r.getTopLeft().toFloat().transformedBy (editor->getTransform().inverted());
+
+                if (preventResizingEditor)
+                    editor->setTopLeftPosition (newPos.roundToInt());
+                else
+                    editor->setBoundsConstrained (editor->getLocalArea (this, r.toFloat()).withPosition (newPos).toNearestInt());
+            }
+        }
+
+        ComponentBoundsConstrainer* getEditorConstrainer() const
+        {
+            if (auto* e = editor.get())
+                return e->getConstrainer();
+
+            return nullptr;
+        }
+
+        BorderSize<int> computeBorder() const
+        {
+            const auto nativeFrame = [&]() -> BorderSize<int>
+            {
+                if (auto* peer = owner.getPeer())
+                    if (const auto frameSize = peer->getFrameSizeIfPresent())
+                        return *frameSize;
+
+                return {};
+            }();
+
+            return nativeFrame.addedTo (owner.getContentComponentBorder())
+                              .addedTo (BorderSize<int> { shouldShowNotification ? NotificationArea::height : 0, 0, 0, 0 });
         }
 
     private:
@@ -935,19 +1020,6 @@ private:
             {
                 const int extraHeight = shouldShowNotification ? NotificationArea::height : 0;
                 const auto rect = getSizeToContainEditor();
-
-                if (auto* editorConstrainer = editor->getConstrainer())
-                {
-                    const auto borders = owner.getContentComponentBorder();
-                    const auto extraWindowWidth = borders.getLeftAndRight();
-                    const auto extraWindowHeight = extraHeight + borders.getTopAndBottom();
-
-                    owner.setResizeLimits (jmax (10, editorConstrainer->getMinimumWidth()  + extraWindowWidth),
-                                           jmax (10, editorConstrainer->getMinimumHeight() + extraWindowHeight),
-                                           editorConstrainer->getMaximumWidth()  + extraWindowWidth,
-                                           editorConstrainer->getMaximumHeight() + extraWindowHeight);
-                }
-
                 setSize (rect.getWidth(), rect.getHeight() + extraHeight);
             }
            #endif
@@ -966,6 +1038,8 @@ private:
         //==============================================================================
         void componentMovedOrResized (Component&, bool, bool) override
         {
+            const ScopedValueSetter<bool> scope (preventResizingEditor, true);
+
             if (editor != nullptr)
             {
                 auto rect = getSizeToContainEditor();
@@ -987,13 +1061,87 @@ private:
         StandaloneFilterWindow& owner;
         NotificationArea notification;
         std::unique_ptr<AudioProcessorEditor> editor;
+        Value inputMutedValue;
         bool shouldShowNotification = false;
+        bool preventResizingEditor = false;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainContentComponent)
     };
 
+    /*  This custom constrainer checks with the AudioProcessorEditor (which might itself be
+        constrained) to ensure that any size we choose for the standalone window will be suitable
+        for the editor too.
+
+        Without this constrainer, attempting to resize the standalone window may set bounds on the
+        peer that are unsupported by the inner editor. In this scenario, the peer will be set to a
+        'bad' size, then the inner editor will be resized. The editor will check the new bounds with
+        its own constrainer, and may set itself to a more suitable size. After that, the resizable
+        window will see that its content component has changed size, and set the bounds of the peer
+        accordingly. The end result is that the peer is resized twice in a row to different sizes,
+        which can appear glitchy/flickery to the user.
+    */
+    struct DecoratorConstrainer : public ComponentBoundsConstrainer
+    {
+        void checkBounds (Rectangle<int>& bounds,
+                          const Rectangle<int>& previousBounds,
+                          const Rectangle<int>& limits,
+                          bool isStretchingTop,
+                          bool isStretchingLeft,
+                          bool isStretchingBottom,
+                          bool isStretchingRight) override
+        {
+            auto* decorated = contentComponent != nullptr ? contentComponent->getEditorConstrainer()
+                                                          : nullptr;
+
+            if (decorated != nullptr)
+            {
+                const auto border = contentComponent->computeBorder();
+                const auto requestedBounds = bounds;
+
+                border.subtractFrom (bounds);
+                decorated->checkBounds (bounds,
+                                        border.subtractedFrom (previousBounds),
+                                        limits,
+                                        isStretchingTop,
+                                        isStretchingLeft,
+                                        isStretchingBottom,
+                                        isStretchingRight);
+                border.addTo (bounds);
+                bounds = bounds.withPosition (requestedBounds.getPosition());
+
+                if (isStretchingTop && ! isStretchingBottom)
+                    bounds = bounds.withBottomY (previousBounds.getBottom());
+
+                if (! isStretchingTop && isStretchingBottom)
+                    bounds = bounds.withY (previousBounds.getY());
+
+                if (isStretchingLeft && ! isStretchingRight)
+                    bounds = bounds.withRightX (previousBounds.getRight());
+
+                if (! isStretchingLeft && isStretchingRight)
+                    bounds = bounds.withX (previousBounds.getX());
+            }
+            else
+            {
+                ComponentBoundsConstrainer::checkBounds (bounds,
+                                                         previousBounds,
+                                                         limits,
+                                                         isStretchingTop,
+                                                         isStretchingLeft,
+                                                         isStretchingBottom,
+                                                         isStretchingRight);
+            }
+        }
+
+        void setMainContentComponent (MainContentComponent* in) { contentComponent = in; }
+
+    private:
+        MainContentComponent* contentComponent = nullptr;
+    };
+
     //==============================================================================
     TextButton optionsButton;
+    DecoratorConstrainer decoratorConstrainer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StandaloneFilterWindow)
 };

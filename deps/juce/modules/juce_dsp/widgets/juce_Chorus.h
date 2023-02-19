@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -37,7 +37,7 @@ namespace dsp
     of the modulation.
 
     Note: To get classic chorus sounds try to use a centre delay time around 7-8 ms
-    with a low feeback volume and a low depth. This effect can also be used as a
+    with a low feedback volume and a low depth. This effect can also be used as a
     flanger with a lower centre delay time and a lot of feedback, and as a vibrato
     effect if the mix value is 1.
 
@@ -148,7 +148,7 @@ private:
 
     //==============================================================================
     Oscillator<SampleType> osc;
-    DelayLine<SampleType, DelayLineInterpolationTypes::Linear> delay { 5000 };
+    DelayLine<SampleType, DelayLineInterpolationTypes::Linear> delay;
     SmoothedValue<SampleType, ValueSmoothingTypes::Linear> oscVolume;
     std::vector<SmoothedValue<SampleType, ValueSmoothingTypes::Linear>> feedbackVolume { 2 };
     DryWetMixer<SampleType> dryWet;
@@ -157,7 +157,12 @@ private:
 
     double sampleRate = 44100.0;
     SampleType rate = 1.0, depth = 0.25, feedback = 0.0, mix = 0.5,
-               centreDelay = 7.0, maximumDelayModulation = 20.0;
+               centreDelay = 7.0;
+
+    static constexpr SampleType maxDepth               = 1.0,
+                                maxCentreDelayMs       = 100.0,
+                                oscVolumeMultiplier    = 0.5,
+                                maximumDelayModulation = 20.0;
 };
 
 } // namespace dsp

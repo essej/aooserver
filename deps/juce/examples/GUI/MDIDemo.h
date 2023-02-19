@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE examples.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    The code included in this file is provided under the terms of the ISC license
    http://www.isc.org/downloads/software-support-policy/isc-license. Permission
@@ -31,7 +31,7 @@
 
  dependencies:     juce_core, juce_data_structures, juce_events, juce_graphics,
                    juce_gui_basics, juce_gui_extra
- exporters:        xcode_mac, vs2019, linux_make, androidstudio, xcode_iphone
+ exporters:        xcode_mac, vs2022, linux_make, androidstudio, xcode_iphone
 
  moduleFlags:      JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -110,14 +110,12 @@ public:
         // not interested in this for now
     }
 
-   #if JUCE_MODAL_LOOPS_PERMITTED
     File getSuggestedSaveAsFile (const File&) override
     {
         return File::getSpecialLocation (File::userDesktopDirectory)
                     .getChildFile (getName())
                     .withFileExtension ("jnote");
     }
-   #endif
 
 private:
     Value textValueObject;
@@ -138,23 +136,25 @@ private:
 class DemoMultiDocumentPanel    : public MultiDocumentPanel
 {
 public:
-    DemoMultiDocumentPanel() {}
+    DemoMultiDocumentPanel() = default;
 
-    ~DemoMultiDocumentPanel() override
+    void tryToCloseDocumentAsync (Component* component, std::function<void (bool)> callback) override
     {
-        closeAllDocuments (true);
+        if (auto* note = dynamic_cast<Note*> (component))
+        {
+            SafePointer<DemoMultiDocumentPanel> parent { this };
+            note->saveIfNeededAndUserAgreesAsync ([parent, callback] (FileBasedDocument::SaveResult result)
+            {
+                if (parent != nullptr)
+                    callback (result == FileBasedDocument::savedOk);
+            });
+        }
     }
 
-    bool tryToCloseDocument (Component* component) override
+    void activeDocumentChanged() override
     {
-       #if JUCE_MODAL_LOOPS_PERMITTED
-        if (auto* note = dynamic_cast<Note*> (component))
-            return note->saveIfNeededAndUserAgrees() != FileBasedDocument::failedToWriteToFile;
-       #else
-        ignoreUnused (component);
-       #endif
-
-        return true;
+        if (auto* activeDoc = getActiveDocument())
+            Logger::outputDebugString ("activeDocumentChanged() to " + activeDoc->getName());
     }
 
 private:
@@ -177,8 +177,35 @@ public:
         showInTabsButton.onClick = [this] { updateLayoutMode(); };
         addAndMakeVisible (showInTabsButton);
 
-        addNoteButton.onClick = [this] { addNote ("Note " + String (multiDocumentPanel.getNumDocuments() + 1), "Hello World!"); };
+        oneDocShouldBeFullscreenButton.onClick = [this]
+        {
+            multiDocumentPanel.useFullscreenWhenOneDocument (oneDocShouldBeFullscreenButton.getToggleState());
+        };
+        addAndMakeVisible (oneDocShouldBeFullscreenButton);
+        oneDocShouldBeFullscreenButton.setToggleState (false, juce::sendNotification);
+
+        addNoteButton.onClick = [this]
+        {
+            addNote ("Note " + String (noteCounter), "Hello World! " + String (noteCounter));
+            ++noteCounter;
+        };
         addAndMakeVisible (addNoteButton);
+
+        closeActiveDocumentButton.onClick = [this]
+        {
+            multiDocumentPanel.closeDocumentAsync (multiDocumentPanel.getActiveDocument(), false, [] (auto) {});
+        };
+        addAndMakeVisible (closeActiveDocumentButton);
+
+        closeApplicationButton.onClick = [this]
+        {
+            multiDocumentPanel.closeAllDocumentsAsync (true, [] (bool allSaved)
+            {
+                if (allSaved)
+                    JUCEApplicationBase::quit();
+            });
+        };
+        addAndMakeVisible (closeApplicationButton);
 
         addAndMakeVisible (multiDocumentPanel);
         multiDocumentPanel.setBackgroundColour (Colours::transparentBlack);
@@ -187,7 +214,7 @@ public:
         addNote ("Notes Demo", "You can drag-and-drop text files onto this page to open them as notes..");
         addExistingNotes();
 
-        setSize (500, 500);
+        setSize (650, 500);
     }
 
     void paint (Graphics& g) override
@@ -199,9 +226,15 @@ public:
     {
         auto area = getLocalBounds();
 
-        auto buttonArea = area.removeFromTop (28).reduced (2);
-        addNoteButton   .setBounds (buttonArea.removeFromRight (150));
-        showInTabsButton.setBounds (buttonArea);
+        auto topButtonRow = area.removeFromTop (28).reduced (2);
+
+        showInTabsButton              .setBounds (topButtonRow.removeFromLeft (150));
+
+        closeApplicationButton        .setBounds (topButtonRow.removeFromRight (150));
+        addNoteButton                 .setBounds (topButtonRow.removeFromRight (150));
+        closeActiveDocumentButton     .setBounds (topButtonRow.removeFromRight (150));
+
+        oneDocShouldBeFullscreenButton.setBounds (area.removeFromTop (28).reduced (2).removeFromLeft (240));
 
         multiDocumentPanel.setBounds (area);
     }
@@ -235,11 +268,6 @@ public:
     }
 
 private:
-    ToggleButton showInTabsButton  { "Show with tabs" };
-    TextButton addNoteButton       { "Create a new note" };
-
-    DemoMultiDocumentPanel multiDocumentPanel;
-
     void updateLayoutMode()
     {
         multiDocumentPanel.setLayoutMode (showInTabsButton.getToggleState() ? MultiDocumentPanel::MaximisedWindowsWithTabs
@@ -260,6 +288,15 @@ private:
         File::getSpecialLocation (File::userDesktopDirectory).findChildFiles (files, File::findFiles, false, "*.jnote");
         createNotesForFiles (files);
     }
+
+    ToggleButton showInTabsButton               { "Show with tabs" };
+    ToggleButton oneDocShouldBeFullscreenButton { "Fill screen when only one note is open" };
+    TextButton   addNoteButton                  { "Create a new note" },
+                 closeApplicationButton         { "Close app" },
+                 closeActiveDocumentButton      { "Close active document" };
+
+    DemoMultiDocumentPanel multiDocumentPanel;
+    int noteCounter = 1;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MDIDemo)
 };

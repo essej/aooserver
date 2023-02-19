@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -28,33 +28,30 @@ namespace juce
 
 //==============================================================================
 class UIATextProvider  : public UIAProviderBase,
-                         public ComBaseClassHelper<ITextProvider2>
+                         public ComBaseClassHelper<ComTypes::ITextProvider2>
 {
 public:
-    explicit UIATextProvider (AccessibilityNativeHandle* nativeHandle)
-        : UIAProviderBase (nativeHandle)
-    {
-        const auto& handler = getHandler();
-
-        if (isReadOnlyText (handler))
-            readOnlyTextInterface = std::make_unique<ReadOnlyTextInterface> (handler.getValueInterface()->getCurrentValueAsString());
-    }
+    using UIAProviderBase::UIAProviderBase;
 
     //==============================================================================
     JUCE_COMRESULT QueryInterface (REFIID iid, void** result) override
     {
-        if (iid == _uuidof (IUnknown) || iid == _uuidof (ITextProvider))
-            return castToType<ITextProvider> (result);
+        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
 
-        if (iid == _uuidof (ITextProvider2))
-            return castToType<ITextProvider2> (result);
+        if (iid == __uuidof (IUnknown) || iid == __uuidof (ComTypes::ITextProvider))
+            return castToType<ComTypes::ITextProvider> (result);
+
+        if (iid == __uuidof (ComTypes::ITextProvider2))
+            return castToType<ComTypes::ITextProvider2> (result);
 
         *result = nullptr;
         return E_NOINTERFACE;
+
+        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
     }
 
     //=============================================================================
-    JUCE_COMRESULT get_DocumentRange (ITextRangeProvider** pRetVal) override
+    JUCE_COMRESULT get_DocumentRange (ComTypes::ITextRangeProvider** pRetVal) override
     {
         return withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
         {
@@ -63,13 +60,11 @@ public:
         });
     }
 
-    JUCE_COMRESULT get_SupportedTextSelection (SupportedTextSelection* pRetVal) override
+    JUCE_COMRESULT get_SupportedTextSelection (ComTypes::SupportedTextSelection* pRetVal) override
     {
         return withCheckedComArgs (pRetVal, *this, [&]
         {
-            *pRetVal = (readOnlyTextInterface != nullptr ? SupportedTextSelection_None
-                                                         : SupportedTextSelection_Single);
-
+            *pRetVal = ComTypes::SupportedTextSelection_Single;
             return S_OK;
         });
     }
@@ -126,7 +121,7 @@ public:
         });
     }
 
-    JUCE_COMRESULT RangeFromChild (IRawElementProviderSimple*, ITextRangeProvider** pRetVal) override
+    JUCE_COMRESULT RangeFromChild (IRawElementProviderSimple*, ComTypes::ITextRangeProvider** pRetVal) override
     {
         return withCheckedComArgs (pRetVal, *this, []
         {
@@ -134,7 +129,7 @@ public:
         });
     }
 
-    JUCE_COMRESULT RangeFromPoint (UiaPoint point, ITextRangeProvider** pRetVal) override
+    JUCE_COMRESULT RangeFromPoint (ComTypes::UiaPoint point, ComTypes::ITextRangeProvider** pRetVal) override
     {
         return withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
         {
@@ -148,7 +143,7 @@ public:
     }
 
     //==============================================================================
-    JUCE_COMRESULT GetCaretRange (BOOL* isActive, ITextRangeProvider** pRetVal) override
+    JUCE_COMRESULT GetCaretRange (BOOL* isActive, ComTypes::ITextRangeProvider** pRetVal) override
     {
         return withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
         {
@@ -161,21 +156,12 @@ public:
         });
     }
 
-    JUCE_COMRESULT RangeFromAnnotation (IRawElementProviderSimple*, ITextRangeProvider** pRetVal) override
+    JUCE_COMRESULT RangeFromAnnotation (IRawElementProviderSimple*, ComTypes::ITextRangeProvider** pRetVal) override
     {
         return withCheckedComArgs (pRetVal, *this, []
         {
             return S_OK;
         });
-    }
-
-    //==============================================================================
-    AccessibilityTextInterface* getTextInterface() const
-    {
-        if (readOnlyTextInterface != nullptr)
-            return readOnlyTextInterface.get();
-
-        return getHandler().getTextInterface();
     }
 
 private:
@@ -185,16 +171,16 @@ private:
     {
         return withCheckedComArgs (pRetVal, *this, [&]() -> HRESULT
         {
-            if (auto* textInterface = getTextInterface())
+            if (auto* textInterface = getHandler().getTextInterface())
                 return callback (*textInterface);
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         });
     }
 
     //==============================================================================
     class UIATextRangeProvider  : public UIAProviderBase,
-                                  public ComBaseClassHelper<ITextRangeProvider>
+                                  public ComBaseClassHelper<ComTypes::ITextRangeProvider>
     {
     public:
         UIATextRangeProvider (UIATextProvider& textProvider, Range<int> range)
@@ -213,7 +199,7 @@ private:
             return Select();
         }
 
-        JUCE_COMRESULT Clone (ITextRangeProvider** pRetVal) override
+        JUCE_COMRESULT Clone (ComTypes::ITextRangeProvider** pRetVal) override
         {
             return withCheckedComArgs (pRetVal, *this, [&]
             {
@@ -222,7 +208,7 @@ private:
             });
         }
 
-        JUCE_COMRESULT Compare (ITextRangeProvider* range, BOOL* pRetVal) override
+        JUCE_COMRESULT Compare (ComTypes::ITextRangeProvider* range, BOOL* pRetVal) override
         {
             return withCheckedComArgs (pRetVal, *this, [&]
             {
@@ -231,9 +217,9 @@ private:
             });
         }
 
-        JUCE_COMRESULT CompareEndpoints (TextPatternRangeEndpoint endpoint,
-                                         ITextRangeProvider* targetRange,
-                                         TextPatternRangeEndpoint targetEndpoint,
+        JUCE_COMRESULT CompareEndpoints (ComTypes::TextPatternRangeEndpoint endpoint,
+                                         ComTypes::ITextRangeProvider* targetRange,
+                                         ComTypes::TextPatternRangeEndpoint targetEndpoint,
                                          int* pRetVal) override
         {
             if (targetRange == nullptr)
@@ -241,70 +227,51 @@ private:
 
             return withCheckedComArgs (pRetVal, *this, [&]
             {
-                auto offset = (endpoint == TextPatternRangeEndpoint_Start ? selectionRange.getStart()
-                                                                          : selectionRange.getEnd());
+                auto offset = (endpoint == ComTypes::TextPatternRangeEndpoint_Start ? selectionRange.getStart()
+                                                                                    : selectionRange.getEnd());
 
                 auto otherRange = static_cast<UIATextRangeProvider*> (targetRange)->getSelectionRange();
-                auto otherOffset = (targetEndpoint == TextPatternRangeEndpoint_Start ? otherRange.getStart()
-                                                                                     : otherRange.getEnd());
+                auto otherOffset = (targetEndpoint == ComTypes::TextPatternRangeEndpoint_Start ? otherRange.getStart()
+                                                                                               : otherRange.getEnd());
 
                 *pRetVal = offset - otherOffset;
                 return S_OK;
             });
         }
 
-        JUCE_COMRESULT ExpandToEnclosingUnit (TextUnit unit) override
+        JUCE_COMRESULT ExpandToEnclosingUnit (ComTypes::TextUnit unit) override
         {
             if (! isElementValid())
-                return UIA_E_ELEMENTNOTAVAILABLE;
+                return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
-            if (auto* textInterface = owner->getTextInterface())
+            if (auto* textInterface = owner->getHandler().getTextInterface())
             {
-                auto numCharacters = textInterface->getTotalNumCharacters();
+                using ATH = AccessibilityTextHelpers;
 
-                if (numCharacters == 0)
-                {
-                    selectionRange = {};
-                    return S_OK;
-                }
+                const auto boundaryType = getBoundaryType (unit);
+                const auto start = ATH::findTextBoundary (*textInterface,
+                                                          selectionRange.getStart(),
+                                                          boundaryType,
+                                                          ATH::Direction::backwards,
+                                                          ATH::IncludeThisBoundary::yes,
+                                                          ATH::IncludeWhitespaceAfterWords::no);
 
-                if (unit == TextUnit_Character)
-                {
-                    selectionRange.setStart (jlimit (0, numCharacters - 1, selectionRange.getStart()));
-                    selectionRange.setEnd (selectionRange.getStart() + 1);
-                }
-                else if (unit == TextUnit_Paragraph
-                      || unit == TextUnit_Page
-                      || unit == TextUnit_Document)
-                {
-                    selectionRange = { 0, numCharacters };
-                }
-                else if (unit == TextUnit_Word
-                      || unit == TextUnit_Format
-                      || unit == TextUnit_Line)
-                {
-                    const auto boundaryType = (unit == TextUnit_Line ? BoundaryType::line : BoundaryType::word);
+                const auto end = ATH::findTextBoundary (*textInterface,
+                                                        start,
+                                                        boundaryType,
+                                                        ATH::Direction::forwards,
+                                                        ATH::IncludeThisBoundary::no,
+                                                        ATH::IncludeWhitespaceAfterWords::yes);
 
-                    auto start = findBoundary (*textInterface,
-                                               selectionRange.getStart(),
-                                               boundaryType,
-                                               NextEndpointDirection::backwards);
-
-                    auto end = findBoundary (*textInterface,
-                                             start,
-                                             boundaryType,
-                                             NextEndpointDirection::forwards);
-
-                    selectionRange = Range<int> (start, end);
-                }
+                selectionRange = Range<int> (start, end);
 
                 return S_OK;
             }
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         }
 
-        JUCE_COMRESULT FindAttribute (TEXTATTRIBUTEID, VARIANT, BOOL, ITextRangeProvider** pRetVal) override
+        JUCE_COMRESULT FindAttribute (TEXTATTRIBUTEID, VARIANT, BOOL, ComTypes::ITextRangeProvider** pRetVal) override
         {
             return withCheckedComArgs (pRetVal, *this, []
             {
@@ -313,7 +280,7 @@ private:
         }
 
         JUCE_COMRESULT FindText (BSTR text, BOOL backward, BOOL ignoreCase,
-                                 ITextRangeProvider** pRetVal) override
+                                 ComTypes::ITextRangeProvider** pRetVal) override
         {
             return owner->withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
             {
@@ -336,23 +303,16 @@ private:
             {
                 VariantHelpers::clear (pRetVal);
 
-                const auto& handler = getHandler();
+                using namespace ComTypes::Constants;
 
                 switch (attributeId)
                 {
                     case UIA_IsReadOnlyAttributeId:
                     {
-                        const auto readOnly = [&]
-                        {
-                            if (auto* valueInterface = handler.getValueInterface())
-                                return valueInterface->isReadOnly();
-
-                            return false;
-                        }();
-
-                        VariantHelpers::setBool (readOnly, pRetVal);
+                        VariantHelpers::setBool (textInterface.isReadOnly(), pRetVal);
                         break;
                     }
+
                     case UIA_CaretPositionAttributeId:
                     {
                         auto cursorPos = textInterface.getTextInsertionOffset();
@@ -360,19 +320,17 @@ private:
                         auto caretPos = [&]
                         {
                             if (cursorPos == 0)
-                                return CaretPosition_BeginningOfLine;
+                                return ComTypes::CaretPosition_BeginningOfLine;
 
                             if (cursorPos == textInterface.getTotalNumCharacters())
-                                return CaretPosition_EndOfLine;
+                                return ComTypes::CaretPosition_EndOfLine;
 
-                            return CaretPosition_Unknown;
+                            return ComTypes::CaretPosition_Unknown;
                         }();
 
                         VariantHelpers::setInt (caretPos, pRetVal);
                         break;
                     }
-                    default:
-                        break;
                 }
 
                 return S_OK;
@@ -386,7 +344,7 @@ private:
                 auto rectangleList = textInterface.getTextBounds (selectionRange);
                 auto numRectangles = rectangleList.getNumRectangles();
 
-                *pRetVal = SafeArrayCreateVector (VT_R8, 0, 4 * numRectangles);
+                *pRetVal = SafeArrayCreateVector (VT_R8, 0, 4 * (ULONG) numRectangles);
 
                 if (*pRetVal == nullptr)
                     return E_FAIL;
@@ -433,11 +391,15 @@ private:
 
         JUCE_COMRESULT GetEnclosingElement (IRawElementProviderSimple** pRetVal) override
         {
+            JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
+
             return withCheckedComArgs (pRetVal, *this, [&]
             {
                 getHandler().getNativeImplementation()->QueryInterface (IID_PPV_ARGS (pRetVal));
                 return S_OK;
             });
+
+            JUCE_END_IGNORE_WARNINGS_GCC_LIKE
         }
 
         JUCE_COMRESULT GetText (int maxLength, BSTR* pRetVal) override
@@ -454,109 +416,109 @@ private:
             });
         }
 
-        JUCE_COMRESULT Move (TextUnit unit, int count, int* pRetVal) override
+        JUCE_COMRESULT Move (ComTypes::TextUnit unit, int count, int* pRetVal) override
         {
-            return owner->withTextInterface (pRetVal, [&] (const AccessibilityTextInterface&)
+            return owner->withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
             {
-                if (count > 0)
+                using ATH = AccessibilityTextHelpers;
+
+                const auto boundaryType = getBoundaryType (unit);
+                const auto previousUnitBoundary = ATH::findTextBoundary (textInterface,
+                                                                         selectionRange.getStart(),
+                                                                         boundaryType,
+                                                                         ATH::Direction::backwards,
+                                                                         ATH::IncludeThisBoundary::yes,
+                                                                         ATH::IncludeWhitespaceAfterWords::no);
+
+                auto numMoved = 0;
+                auto movedEndpoint = previousUnitBoundary;
+
+                for (; numMoved < std::abs (count); ++numMoved)
                 {
-                    MoveEndpointByUnit (TextPatternRangeEndpoint_End, unit, count, pRetVal);
-                    MoveEndpointByUnit (TextPatternRangeEndpoint_Start, unit, count, pRetVal);
-                }
-                else if (count < 0)
-                {
-                    MoveEndpointByUnit (TextPatternRangeEndpoint_Start, unit, count, pRetVal);
-                    MoveEndpointByUnit (TextPatternRangeEndpoint_End, unit, count, pRetVal);
+                    const auto nextEndpoint = ATH::findTextBoundary (textInterface,
+                                                                     movedEndpoint,
+                                                                     boundaryType,
+                                                                     count > 0 ? ATH::Direction::forwards : ATH::Direction::backwards,
+                                                                     ATH::IncludeThisBoundary::no,
+                                                                     count > 0 ? ATH::IncludeWhitespaceAfterWords::yes : ATH::IncludeWhitespaceAfterWords::no);
+
+                    if (nextEndpoint == movedEndpoint)
+                        break;
+
+                    movedEndpoint = nextEndpoint;
                 }
 
+                *pRetVal = numMoved;
+
+                ExpandToEnclosingUnit (unit);
                 return S_OK;
             });
         }
 
-        JUCE_COMRESULT MoveEndpointByRange (TextPatternRangeEndpoint endpoint,
-                                            ITextRangeProvider* targetRange,
-                                            TextPatternRangeEndpoint targetEndpoint) override
+        JUCE_COMRESULT MoveEndpointByRange (ComTypes::TextPatternRangeEndpoint endpoint,
+                                            ComTypes::ITextRangeProvider* targetRange,
+                                            ComTypes::TextPatternRangeEndpoint targetEndpoint) override
         {
             if (targetRange == nullptr)
                 return E_INVALIDARG;
 
             if (! isElementValid())
-                return UIA_E_ELEMENTNOTAVAILABLE;
+                return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
-            if (auto* textInterface = owner->getTextInterface())
+            if (owner->getHandler().getTextInterface() != nullptr)
             {
                 auto otherRange = static_cast<UIATextRangeProvider*> (targetRange)->getSelectionRange();
-                auto targetPoint = (targetEndpoint == TextPatternRangeEndpoint_Start ? otherRange.getStart()
-                                                                                     : otherRange.getEnd());
+                auto targetPoint = (targetEndpoint == ComTypes::TextPatternRangeEndpoint_Start ? otherRange.getStart()
+                                                                                               : otherRange.getEnd());
 
                 setEndpointChecked (endpoint, targetPoint);
                 return S_OK;
             }
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         }
 
-        JUCE_COMRESULT MoveEndpointByUnit (TextPatternRangeEndpoint endpoint,
-                                           TextUnit unit,
+        JUCE_COMRESULT MoveEndpointByUnit (ComTypes::TextPatternRangeEndpoint endpoint,
+                                           ComTypes::TextUnit unit,
                                            int count,
                                            int* pRetVal) override
         {
             return owner->withTextInterface (pRetVal, [&] (const AccessibilityTextInterface& textInterface)
             {
-                auto numCharacters = textInterface.getTotalNumCharacters();
-
-                if (count == 0 || numCharacters == 0)
+                if (count == 0 || textInterface.getTotalNumCharacters() == 0)
                     return S_OK;
 
-                const auto isStart = (endpoint == TextPatternRangeEndpoint_Start);
-                auto endpointToMove = (isStart ? selectionRange.getStart() : selectionRange.getEnd());
+                const auto endpointToMove = (endpoint == ComTypes::TextPatternRangeEndpoint_Start ? selectionRange.getStart()
+                                                                                                  : selectionRange.getEnd());
 
-                if (unit == TextUnit_Character)
+                using ATH = AccessibilityTextHelpers;
+
+                const auto direction = (count > 0 ? ATH::Direction::forwards
+                                                  : ATH::Direction::backwards);
+
+                const auto boundaryType = getBoundaryType (unit);
+                auto movedEndpoint = endpointToMove;
+
+                int numMoved = 0;
+                for (; numMoved < std::abs (count); ++numMoved)
                 {
-                    const auto targetPoint = jlimit (0, numCharacters, endpointToMove + count);
+                    auto nextEndpoint = ATH::findTextBoundary (textInterface,
+                                                               movedEndpoint,
+                                                               boundaryType,
+                                                               direction,
+                                                               ATH::IncludeThisBoundary::no,
+                                                               direction == ATH::Direction::forwards ? ATH::IncludeWhitespaceAfterWords::yes
+                                                                                                     : ATH::IncludeWhitespaceAfterWords::no);
 
-                    *pRetVal = targetPoint - endpointToMove;
-                    setEndpointChecked (endpoint, targetPoint);
+                    if (nextEndpoint == movedEndpoint)
+                        break;
 
-                    return S_OK;
+                    movedEndpoint = nextEndpoint;
                 }
 
-                auto direction = (count > 0 ? NextEndpointDirection::forwards
-                                            : NextEndpointDirection::backwards);
+                *pRetVal = numMoved;
 
-                if (unit == TextUnit_Paragraph
-                    || unit == TextUnit_Page
-                    || unit == TextUnit_Document)
-                {
-                    *pRetVal = (direction == NextEndpointDirection::forwards ? 1 : -1);
-                    setEndpointChecked (endpoint, numCharacters);
-                    return S_OK;
-                }
-
-                if (unit == TextUnit_Word
-                    || unit == TextUnit_Format
-                    || unit == TextUnit_Line)
-                {
-                    const auto boundaryType = unit == TextUnit_Line ? BoundaryType::line : BoundaryType::word;
-
-                    // handle case where endpoint is on a boundary
-                    if (findBoundary (textInterface, endpointToMove, boundaryType, direction) == endpointToMove)
-                        endpointToMove += (direction == NextEndpointDirection::forwards ? 1 : -1);
-
-                    int numMoved;
-                    for (numMoved = 0; numMoved < std::abs (count); ++numMoved)
-                    {
-                        auto nextEndpoint = findBoundary (textInterface, endpointToMove, boundaryType, direction);
-
-                        if (nextEndpoint == endpointToMove)
-                            break;
-
-                        endpointToMove = nextEndpoint;
-                    }
-
-                    *pRetVal = numMoved;
-                    setEndpointChecked (endpoint, endpointToMove);
-                }
+                setEndpointChecked (endpoint, movedEndpoint);
 
                 return S_OK;
             });
@@ -565,31 +527,31 @@ private:
         JUCE_COMRESULT RemoveFromSelection() override
         {
             if (! isElementValid())
-                return UIA_E_ELEMENTNOTAVAILABLE;
+                return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
-            if (auto* textInterface = owner->getTextInterface())
+            if (auto* textInterface = owner->getHandler().getTextInterface())
             {
                 textInterface->setSelection ({});
                 return S_OK;
             }
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         }
 
         JUCE_COMRESULT ScrollIntoView (BOOL) override
         {
             if (! isElementValid())
-                return UIA_E_ELEMENTNOTAVAILABLE;
+                return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         }
 
         JUCE_COMRESULT Select() override
         {
             if (! isElementValid())
-                return UIA_E_ELEMENTNOTAVAILABLE;
+                return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
-            if (auto* textInterface = owner->getTextInterface())
+            if (auto* textInterface = owner->getHandler().getTextInterface())
             {
                 textInterface->setSelection ({});
                 textInterface->setSelection (selectionRange);
@@ -597,37 +559,37 @@ private:
                 return S_OK;
             }
 
-            return UIA_E_NOTSUPPORTED;
+            return (HRESULT) UIA_E_NOTSUPPORTED;
         }
 
     private:
-        enum class NextEndpointDirection { forwards, backwards };
-        enum class BoundaryType { word, line };
-
-        static int findBoundary (const AccessibilityTextInterface& textInterface,
-                                 int currentPosition,
-                                 BoundaryType boundary,
-                                 NextEndpointDirection direction)
+        static AccessibilityTextHelpers::BoundaryType getBoundaryType (ComTypes::TextUnit unit)
         {
-            const auto text = [&]() -> String
+            switch (unit)
             {
-                if (direction == NextEndpointDirection::forwards)
-                    return textInterface.getText ({ currentPosition, textInterface.getTotalNumCharacters() });
+                case ComTypes::TextUnit_Character:
+                    return AccessibilityTextHelpers::BoundaryType::character;
 
-                auto stdString = textInterface.getText ({ 0, currentPosition }).toStdString();
-                std::reverse (stdString.begin(), stdString.end());
-                return stdString;
-            }();
+                case ComTypes::TextUnit_Format:
+                case ComTypes::TextUnit_Word:
+                    return AccessibilityTextHelpers::BoundaryType::word;
 
-            auto tokens = (boundary == BoundaryType::line ? StringArray::fromLines (text)
-                                                          : StringArray::fromTokens (text, false));
+                case ComTypes::TextUnit_Line:
+                    return AccessibilityTextHelpers::BoundaryType::line;
 
-            return currentPosition + (direction == NextEndpointDirection::forwards ? tokens[0].length() : -(tokens[0].length()));
+                case ComTypes::TextUnit_Paragraph:
+                case ComTypes::TextUnit_Page:
+                case ComTypes::TextUnit_Document:
+                    return AccessibilityTextHelpers::BoundaryType::document;
+            };
+
+            jassertfalse;
+            return AccessibilityTextHelpers::BoundaryType::character;
         }
 
-        void setEndpointChecked (TextPatternRangeEndpoint endpoint, int newEndpoint)
+        void setEndpointChecked (ComTypes::TextPatternRangeEndpoint endpoint, int newEndpoint)
         {
-            if (endpoint == TextPatternRangeEndpoint_Start)
+            if (endpoint == ComTypes::TextPatternRangeEndpoint_Start)
             {
                 if (selectionRange.getEnd() < newEndpoint)
                     selectionRange.setEnd (newEndpoint);
@@ -649,34 +611,6 @@ private:
         //==============================================================================
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UIATextRangeProvider)
     };
-
-    //==============================================================================
-    class ReadOnlyTextInterface : public AccessibilityTextInterface
-    {
-    public:
-        explicit ReadOnlyTextInterface (const String& t)
-            : text (t)
-        {
-        }
-
-        bool isDisplayingProtectedText() const override               { return false; }
-        int getTotalNumCharacters() const                             { return text.length(); }
-        Range<int> getSelection() const override                      { return selection; }
-        void setSelection (Range<int> s) override                     { selection = s; }
-        int getTextInsertionOffset() const override                   { return 0; }
-        String getText (Range<int> range) const override              { return text.substring (range.getStart(), range.getEnd()); }
-        void setText (const String&) override                         {}
-        RectangleList<int> getTextBounds (Range<int>) const override  { return {}; }
-        int getOffsetAtPoint (Point<int>) const override              { return 0; }
-
-    private:
-        const String text;
-        Range<int> selection;
-
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReadOnlyTextInterface)
-    };
-
-    std::unique_ptr<ReadOnlyTextInterface> readOnlyTextInterface;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UIATextProvider)

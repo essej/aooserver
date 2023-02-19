@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -26,21 +26,15 @@
 namespace juce
 {
 
-JUCE_COMCLASS (ISelectionProvider2, "14f68475-ee1c-44f6-a869-d239381f0fe7")  : public ISelectionProvider
-{
-    JUCE_COMCALL get_FirstSelectedItem   (IRawElementProviderSimple** retVal) = 0;
-    JUCE_COMCALL get_LastSelectedItem    (IRawElementProviderSimple** retVal) = 0;
-    JUCE_COMCALL get_CurrentSelectedItem (IRawElementProviderSimple** retVal) = 0;
-    JUCE_COMCALL get_ItemCount (int* retVal) = 0;
-};
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
 
 //==============================================================================
 class UIASelectionItemProvider  : public UIAProviderBase,
-                                  public ComBaseClassHelper<ISelectionItemProvider>
+                                  public ComBaseClassHelper<ComTypes::ISelectionItemProvider>
 {
 public:
-    explicit UIASelectionItemProvider (AccessibilityNativeHandle* nativeHandle)
-        : UIAProviderBase (nativeHandle),
+    explicit UIASelectionItemProvider (AccessibilityNativeHandle* handle)
+        : UIAProviderBase (handle),
           isRadioButton (getHandler().getRole() == AccessibilityRole::radioButton)
     {
     }
@@ -49,12 +43,14 @@ public:
     JUCE_COMRESULT AddToSelection() override
     {
         if (! isElementValid())
-            return UIA_E_ELEMENTNOTAVAILABLE;
+            return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
         const auto& handler = getHandler();
 
         if (isRadioButton)
         {
+            using namespace ComTypes::Constants;
+
             handler.getActions().invoke (AccessibilityActionType::press);
             sendAccessibilityAutomationEvent (handler, UIA_SelectionItem_ElementSelectedEventId);
 
@@ -92,7 +88,7 @@ public:
     JUCE_COMRESULT RemoveFromSelection() override
     {
         if (! isElementValid())
-            return UIA_E_ELEMENTNOTAVAILABLE;
+            return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
         if (! isRadioButton)
         {
@@ -108,7 +104,7 @@ public:
     JUCE_COMRESULT Select() override
     {
         if (! isElementValid())
-            return UIA_E_ELEMENTNOTAVAILABLE;
+            return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
         AddToSelection();
 
@@ -134,22 +130,19 @@ private:
 
 //==============================================================================
 class UIASelectionProvider  : public UIAProviderBase,
-                              public ComBaseClassHelper<ISelectionProvider2>
+                              public ComBaseClassHelper<ComTypes::ISelectionProvider2>
 {
 public:
-    explicit UIASelectionProvider (AccessibilityNativeHandle* nativeHandle)
-        : UIAProviderBase (nativeHandle)
-    {
-    }
+    using UIAProviderBase::UIAProviderBase;
 
     //==============================================================================
     JUCE_COMRESULT QueryInterface (REFIID iid, void** result) override
     {
-        if (iid == _uuidof (IUnknown) || iid == _uuidof (ISelectionProvider))
-            return castToType<ISelectionProvider> (result);
+        if (iid == __uuidof (IUnknown) || iid == __uuidof (ComTypes::ISelectionProvider))
+            return castToType<ComTypes::ISelectionProvider> (result);
 
-        if (iid == _uuidof (ISelectionProvider2))
-            return castToType<ISelectionProvider2> (result);
+        if (iid == __uuidof (ComTypes::ISelectionProvider2))
+            return castToType<ComTypes::ISelectionProvider2> (result);
 
         *result = nullptr;
         return E_NOINTERFACE;
@@ -248,5 +241,7 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UIASelectionProvider)
 };
+
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 } // namespace juce

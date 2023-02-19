@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -36,7 +36,7 @@ class ProjectSaver
 public:
     ProjectSaver (Project& projectToSave);
 
-    Result save (ProjectExporter* exporterToSave = nullptr);
+    void save (Async async, ProjectExporter* exporterToSave, std::function<void (Result)> onCompletion);
     Result saveResourcesOnly();
     void saveBasicProjectItems (const OwnedArray<LibraryModule>& modules, const String& appConfigUserContent);
 
@@ -52,21 +52,30 @@ private:
     struct SaveThreadWithProgressWindow  : public ThreadWithProgressWindow
     {
     public:
-        SaveThreadWithProgressWindow (ProjectSaver& ps, ProjectExporter* exporterToSave)
+        SaveThreadWithProgressWindow (ProjectSaver& ps,
+                                      ProjectExporter* exporterToSave,
+                                      std::function<void (Result)> onCompletionIn)
             : ThreadWithProgressWindow ("Saving...", true, false),
               saver (ps),
-              specifiedExporterToSave (exporterToSave)
-        {}
+              specifiedExporterToSave (exporterToSave),
+              onCompletion (std::move (onCompletionIn))
+        {
+            jassert (onCompletion != nullptr);
+        }
 
         void run() override
         {
             setProgress (-1);
-            result = saver.saveProject (specifiedExporterToSave);
+            const auto result = saver.saveProject (specifiedExporterToSave);
+            const auto callback = onCompletion;
+
+            MessageManager::callAsync ([callback, result] { callback (result); });
         }
 
+    private:
         ProjectSaver& saver;
-        Result result = Result::ok();
         ProjectExporter* specifiedExporterToSave;
+        std::function<void (Result)> onCompletion;
 
         JUCE_DECLARE_NON_COPYABLE (SaveThreadWithProgressWindow)
     };
@@ -86,6 +95,7 @@ private:
     OwnedArray<LibraryModule> getModules();
 
     Result saveProject (ProjectExporter* specifiedExporterToSave);
+    void saveProjectAsync (ProjectExporter* exporterToSave, std::function<void (Result)> onCompletion);
 
     template <typename WriterCallback>
     void writeOrRemoveGeneratedFile (const String& name, WriterCallback&& writerCallback);
@@ -93,6 +103,7 @@ private:
     void writePluginDefines (MemoryOutputStream& outStream) const;
     void writePluginDefines();
     void writeAppConfigFile (const OwnedArray<LibraryModule>& modules, const String& userContent);
+    void writeLV2Defines (MemoryOutputStream&);
 
     void writeProjectFile();
     void writeAppConfig (MemoryOutputStream& outStream, const OwnedArray<LibraryModule>& modules, const String& userContent);
@@ -104,6 +115,7 @@ private:
     void writePluginCharacteristicsFile();
     void writeUnityScriptFile();
     void writeProjects (const OwnedArray<LibraryModule>&, ProjectExporter*);
+    void writeLV2DefinesFile();
     void runPostExportScript();
     void saveExporter (ProjectExporter& exporter, const OwnedArray<LibraryModule>& modules);
 
@@ -118,8 +130,11 @@ private:
     CriticalSection errorLock;
     StringArray errors;
 
+    std::unique_ptr<SaveThreadWithProgressWindow> saveThread;
+
     bool hasBinaryData = false;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProjectSaver)
+    JUCE_DECLARE_WEAK_REFERENCEABLE (ProjectSaver)
 };

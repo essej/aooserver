@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -33,8 +33,8 @@
  class AUScanner
  {
  public:
-     AUScanner (KnownPluginList& list)
-         : knownPluginList (list), pool (5)
+     explicit AUScanner (KnownPluginList& list)
+         : knownPluginList (list)
      {
          knownPluginList.clearBlacklistedFiles();
          paths = formatToScan.getDefaultLocationsToSearch();
@@ -49,7 +49,8 @@
      std::unique_ptr<PluginDirectoryScanner> scanner;
      FileSearchPath paths;
 
-     ThreadPool pool;
+     static constexpr auto numJobs = 5;
+     ThreadPool pool { numJobs };
 
      void startScan()
      {
@@ -59,17 +60,14 @@
          scanner.reset (new PluginDirectoryScanner (knownPluginList, formatToScan, paths,
                                                     true, deadMansPedalFile, true));
 
-         for (int i = 5; --i >= 0;)
+         for (int i = numJobs; --i >= 0;)
              pool.addJob (new ScanJob (*this), true);
      }
 
      bool doNextScan()
      {
          String pluginBeingScanned;
-         if (scanner->scanNextFile (true, pluginBeingScanned))
-             return true;
-
-         return false;
+         return scanner->scanNextFile (true, pluginBeingScanned);
      }
 
      struct ScanJob  : public ThreadPoolJob
@@ -174,7 +172,8 @@ struct GraphEditorPanel::PinComponent   : public Component,
 //==============================================================================
 struct GraphEditorPanel::PluginComponent   : public Component,
                                              public Timer,
-                                             private AudioProcessorParameter::Listener
+                                             private AudioProcessorParameter::Listener,
+                                             private AsyncUpdater
 {
     PluginComponent (GraphEditorPanel& p, AudioProcessorGraph::NodeID id)  : panel (p), graph (p.graph), pluginID (id)
     {
@@ -338,12 +337,14 @@ struct GraphEditorPanel::PluginComponent   : public Component,
         const AudioProcessorGraph::Node::Ptr f (graph.graph.getNodeForId (pluginID));
         jassert (f != nullptr);
 
-        numIns = f->getProcessor()->getTotalNumInputChannels();
-        if (f->getProcessor()->acceptsMidi())
+        auto& processor = *f->getProcessor();
+
+        numIns = processor.getTotalNumInputChannels();
+        if (processor.acceptsMidi())
             ++numIns;
 
-        numOuts = f->getProcessor()->getTotalNumOutputChannels();
-        if (f->getProcessor()->producesMidi())
+        numOuts = processor.getTotalNumOutputChannels();
+        if (processor.producesMidi())
             ++numOuts;
 
         int w = 100;
@@ -351,14 +352,13 @@ struct GraphEditorPanel::PluginComponent   : public Component,
 
         w = jmax (w, (jmax (numIns, numOuts) + 1) * 20);
 
-        const int textWidth = font.getStringWidth (f->getProcessor()->getName());
+        const int textWidth = font.getStringWidth (processor.getName());
         w = jmax (w, 16 + jmin (textWidth, 300));
         if (textWidth > 300)
             h = 100;
 
         setSize (w, h);
-
-        setName (f->getProcessor()->getName());
+        setName (processor.getName() + formatSuffix);
 
         {
             auto p = graph.getNodePosition (pluginID);
@@ -372,16 +372,16 @@ struct GraphEditorPanel::PluginComponent   : public Component,
 
             pins.clear();
 
-            for (int i = 0; i < f->getProcessor()->getTotalNumInputChannels(); ++i)
+            for (int i = 0; i < processor.getTotalNumInputChannels(); ++i)
                 addAndMakeVisible (pins.add (new PinComponent (panel, { pluginID, i }, true)));
 
-            if (f->getProcessor()->acceptsMidi())
+            if (processor.acceptsMidi())
                 addAndMakeVisible (pins.add (new PinComponent (panel, { pluginID, AudioProcessorGraph::midiChannelIndex }, true)));
 
-            for (int i = 0; i < f->getProcessor()->getTotalNumOutputChannels(); ++i)
+            for (int i = 0; i < processor.getTotalNumOutputChannels(); ++i)
                 addAndMakeVisible (pins.add (new PinComponent (panel, { pluginID, i }, false)));
 
-            if (f->getProcessor()->producesMidi())
+            if (processor.producesMidi())
                 addAndMakeVisible (pins.add (new PinComponent (panel, { pluginID, AudioProcessorGraph::midiChannelIndex }, false)));
 
             resized();
@@ -396,51 +396,55 @@ struct GraphEditorPanel::PluginComponent   : public Component,
         return {};
     }
 
+    bool isNodeUsingARA() const
+    {
+        if (auto node = graph.graph.getNodeForId (pluginID))
+            return node->properties["useARA"];
+
+        return false;
+    }
+
     void showPopupMenu()
     {
         menu.reset (new PopupMenu);
-        menu->addItem (1, "Delete this filter");
-        menu->addItem (2, "Disconnect all pins");
-        menu->addItem (3, "Toggle Bypass");
+        menu->addItem ("Delete this filter", [this] { graph.graph.removeNode (pluginID); });
+        menu->addItem ("Disconnect all pins", [this] { graph.graph.disconnectNode (pluginID); });
+        menu->addItem ("Toggle Bypass", [this]
+        {
+            if (auto* node = graph.graph.getNodeForId (pluginID))
+                node->setBypassed (! node->isBypassed());
+
+            repaint();
+        });
 
         menu->addSeparator();
-        menu->addItem (10, "Show plugin GUI");
-        menu->addItem (11, "Show all programs");
-        menu->addItem (12, "Show all parameters");
-        menu->addItem (13, "Show debug log");
+        if (getProcessor()->hasEditor())
+            menu->addItem ("Show plugin GUI", [this] { showWindow (PluginWindow::Type::normal); });
+
+        menu->addItem ("Show all programs", [this] { showWindow (PluginWindow::Type::programs); });
+        menu->addItem ("Show all parameters", [this] { showWindow (PluginWindow::Type::generic); });
+        menu->addItem ("Show debug log", [this] { showWindow (PluginWindow::Type::debug); });
+
+       #if JUCE_PLUGINHOST_ARA && (JUCE_MAC || JUCE_WINDOWS || JUCE_LINUX)
+        if (auto* instance = dynamic_cast<AudioPluginInstance*> (getProcessor()))
+            if (instance->getPluginDescription().hasARAExtension && isNodeUsingARA())
+                menu->addItem ("Show ARA host controls", [this] { showWindow (PluginWindow::Type::araHost); });
+       #endif
 
         if (autoScaleOptionAvailable)
             addPluginAutoScaleOptionsSubMenu (dynamic_cast<AudioPluginInstance*> (getProcessor()), *menu);
 
         menu->addSeparator();
-        menu->addItem (20, "Configure Audio I/O");
-        menu->addItem (21, "Test state save/load");
+        menu->addItem ("Configure Audio I/O", [this] { showWindow (PluginWindow::Type::audioIO); });
+        menu->addItem ("Test state save/load", [this] { testStateSaveLoad(); });
 
-        menu->showMenuAsync ({}, ModalCallbackFunction::create
-                             ([this] (int r) {
-        switch (r)
-        {
-            case 1:   graph.graph.removeNode (pluginID); break;
-            case 2:   graph.graph.disconnectNode (pluginID); break;
-            case 3:
-            {
-                if (auto* node = graph.graph.getNodeForId (pluginID))
-                    node->setBypassed (! node->isBypassed());
+       #if ! JUCE_IOS && ! JUCE_ANDROID
+        menu->addSeparator();
+        menu->addItem ("Save plugin state", [this] { savePluginState(); });
+        menu->addItem ("Load plugin state", [this] { loadPluginState(); });
+       #endif
 
-                repaint();
-
-                break;
-            }
-            case 10:  showWindow (PluginWindow::Type::normal); break;
-            case 11:  showWindow (PluginWindow::Type::programs); break;
-            case 12:  showWindow (PluginWindow::Type::generic)  ; break;
-            case 13:  showWindow (PluginWindow::Type::debug); break;
-            case 20:  showWindow (PluginWindow::Type::audioIO); break;
-            case 21:  testStateSaveLoad(); break;
-
-            default:  break;
-        }
-        }));
+        menu->showMenuAsync ({});
     }
 
     void testStateSaveLoad()
@@ -471,10 +475,67 @@ struct GraphEditorPanel::PluginComponent   : public Component,
 
     void parameterValueChanged (int, float) override
     {
-        repaint();
+        // Parameter changes might come from the audio thread or elsewhere, but
+        // we can only call repaint from the message thread.
+        triggerAsyncUpdate();
     }
 
     void parameterGestureChanged (int, bool) override  {}
+
+    void handleAsyncUpdate() override { repaint(); }
+
+    void savePluginState()
+    {
+        fileChooser = std::make_unique<FileChooser> ("Save plugin state");
+
+        const auto onChosen = [ref = SafePointer<PluginComponent> (this)] (const FileChooser& chooser)
+        {
+            if (ref == nullptr)
+                return;
+
+            const auto result = chooser.getResult();
+
+            if (result == File())
+                return;
+
+            if (auto* node = ref->graph.graph.getNodeForId (ref->pluginID))
+            {
+                MemoryBlock block;
+                node->getProcessor()->getStateInformation (block);
+                result.replaceWithData (block.getData(), block.getSize());
+            }
+        };
+
+        fileChooser->launchAsync (FileBrowserComponent::saveMode | FileBrowserComponent::warnAboutOverwriting, onChosen);
+    }
+
+    void loadPluginState()
+    {
+        fileChooser = std::make_unique<FileChooser> ("Load plugin state");
+
+        const auto onChosen = [ref = SafePointer<PluginComponent> (this)] (const FileChooser& chooser)
+        {
+            if (ref == nullptr)
+                return;
+
+            const auto result = chooser.getResult();
+
+            if (result == File())
+                return;
+
+            if (auto* node = ref->graph.graph.getNodeForId (ref->pluginID))
+            {
+                if (auto stream = result.createInputStream())
+                {
+                    MemoryBlock block;
+                    stream->readIntoMemoryBlock (block);
+                    node->getProcessor()->setStateInformation (block.getData(), (int) block.getSize());
+                }
+            }
+        };
+
+        fileChooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles, onChosen);
+    }
 
     GraphEditorPanel& panel;
     PluginGraph& graph;
@@ -487,6 +548,8 @@ struct GraphEditorPanel::PluginComponent   : public Component,
     int numIns = 0, numOuts = 0;
     DropShadowEffect shadow;
     std::unique_ptr<PopupMenu> menu;
+    std::unique_ptr<FileChooser> fileChooser;
+    const String formatSuffix = getFormatSuffix (getProcessor());
 };
 
 
@@ -733,7 +796,7 @@ void GraphEditorPanel::mouseDrag (const MouseEvent& e)
         stopTimer();
 }
 
-void GraphEditorPanel::createNewPlugin (const PluginDescription& desc, Point<int> position)
+void GraphEditorPanel::createNewPlugin (const PluginDescriptionAndPreference& desc, Point<int> position)
 {
     graph.addPlugin (desc, position.toDouble() / Point<double> ((double) getWidth(), (double) getHeight()));
 }
@@ -1229,14 +1292,9 @@ void GraphDocumentComponent::resized()
     checkAvailableWidth();
 }
 
-void GraphDocumentComponent::createNewPlugin (const PluginDescription& desc, Point<int> pos)
+void GraphDocumentComponent::createNewPlugin (const PluginDescriptionAndPreference& desc, Point<int> pos)
 {
     graphPanel->createNewPlugin (desc, pos);
-}
-
-void GraphDocumentComponent::unfocusKeyboardComponent()
-{
-    keyboardComp->unfocusAllComponents();
 }
 
 void GraphDocumentComponent::releaseGraph()
@@ -1276,7 +1334,8 @@ void GraphDocumentComponent::itemDropped (const SourceDetails& details)
     // must be a valid index!
     jassert (isPositiveAndBelow (pluginTypeIndex, pluginList.getNumTypes()));
 
-    createNewPlugin (pluginList.getTypes()[pluginTypeIndex], details.localPosition);
+    createNewPlugin (PluginDescriptionAndPreference { pluginList.getTypes()[pluginTypeIndex] },
+                     details.localPosition);
 }
 
 void GraphDocumentComponent::showSidePanel (bool showSettingsPanel)

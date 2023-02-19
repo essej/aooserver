@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -34,7 +34,7 @@ void MACAddress::findAllAddresses (Array<MACAddress>& result)
         {
             if (i->ifa_addr->sa_family == AF_LINK)
             {
-                struct sockaddr_dl* sdl = (struct sockaddr_dl*) i->ifa_addr;
+                auto sdl = unalignedPointerCast<struct sockaddr_dl*> (i->ifa_addr);
                 MACAddress ma ((const uint8*) (sdl->sdl_data + sdl->sdl_nlen));
 
                 if (! ma.isNull())
@@ -607,9 +607,9 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Pimpl)
 };
 
-std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool shouldUsePost)
+std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, const DownloadTaskOptions& options)
 {
-    return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, extraHeaders, listener, shouldUsePost);
+    return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, options);
 }
 #endif
 

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE examples.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    The code included in this file is provided under the terms of the ISC license
    http://www.isc.org/downloads/software-support-policy/isc-license. Permission
@@ -32,7 +32,7 @@
  dependencies:     juce_audio_basics, juce_audio_devices, juce_core, juce_cryptography,
                    juce_data_structures, juce_events, juce_graphics, juce_gui_basics,
                    juce_gui_extra, juce_video
- exporters:        xcode_mac, vs2019, androidstudio, xcode_iphone
+ exporters:        xcode_mac, vs2022, androidstudio, xcode_iphone
 
  moduleFlags:      JUCE_USE_CAMERA=1, JUCE_STRICT_REFCOUNTEDPOINTER=1
 
@@ -252,7 +252,7 @@ private:
         }
         else
         {
-            AlertWindow::showMessageBoxAsync (AlertWindow::WarningIcon, "Camera open failed",
+            AlertWindow::showMessageBoxAsync (MessageBoxIconType::WarningIcon, "Camera open failed",
                                               "Camera open failed, reason: " + error);
         }
 
@@ -365,7 +365,7 @@ private:
 
     void errorOccurred (const String& error)
     {
-        AlertWindow::showMessageBoxAsync (AlertWindow::InfoIcon,
+        AlertWindow::showMessageBoxAsync (MessageBoxIconType::InfoIcon,
                                           "Camera Device Error",
                                           "An error has occurred: " + error + " Camera will be closed.");
 
@@ -378,7 +378,7 @@ private:
 
     void sharingFinished (bool success, bool isCapture)
     {
-        AlertWindow::showMessageBoxAsync (AlertWindow::InfoIcon,
+        AlertWindow::showMessageBoxAsync (MessageBoxIconType::InfoIcon,
                                           isCapture ? "Image sharing result" : "Video sharing result",
                                           success ? "Success!" : "Failed!");
 

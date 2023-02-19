@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -28,22 +28,28 @@ namespace juce
 namespace build_tools
 {
     //==============================================================================
-    static bool keyFoundAndNotSequentialDuplicate (XmlElement& xml, const String& key)
+    static XmlElement* getKeyWithName (XmlElement& xml, const String& key)
     {
         for (auto* element : xml.getChildWithTagNameIterator ("key"))
-        {
             if (element->getAllSubText().trim().equalsIgnoreCase (key))
-            {
-                if (element->getNextElement() != nullptr && element->getNextElement()->hasTagName ("key"))
-                {
-                    // found broken plist format (sequential duplicate), fix by removing
-                    xml.removeChildElement (element, true);
-                    return false;
-                }
+                return element;
 
-                // key found (not sequential duplicate)
-                return true;
+        return nullptr;
+    }
+
+    static bool keyFoundAndNotSequentialDuplicate (XmlElement& xml, const String& key)
+    {
+        if (auto* element = getKeyWithName (xml, key))
+        {
+            if (element->getNextElement() != nullptr && element->getNextElement()->hasTagName ("key"))
+            {
+                // found broken plist format (sequential duplicate), fix by removing
+                xml.removeChildElement (element, true);
+                return false;
             }
+
+            // key found (not sequential duplicate)
+            return true;
         }
 
         // key not found
@@ -85,9 +91,11 @@ namespace build_tools
             xml.createNewChildElement ("integer")->addTextElement (String (value));
     }
 
-    //==============================================================================
     static void addArrayToPlist (XmlElement& dict, String arrayKey, const StringArray& arrayElements)
     {
+        if (getKeyWithName (dict, arrayKey) != nullptr)
+            return;
+
         dict.createNewChildElement ("key")->addTextElement (arrayKey);
         auto* plistStringArray = dict.createNewChildElement ("array");
 
@@ -95,6 +103,14 @@ namespace build_tools
             plistStringArray->createNewChildElement ("string")->addTextElement (e);
     }
 
+    static int getAUVersionAsHexInteger (const PlistOptions& opts)
+    {
+        const auto segments = getVersionSegments (opts.marketingVersion);
+        const StringArray trimmed (segments.strings.getRawDataPointer(), jmin (segments.size(), 3));
+        return getVersionAsHexIntegerFromParts (trimmed);
+    }
+
+    //==============================================================================
     void PlistOptions::write (const File& infoPlistFile) const
     {
         writeStreamToFile (infoPlistFile, [&] (MemoryOutputStream& mo) { write (mo); });
@@ -160,7 +176,7 @@ namespace build_tools
         addPlistDictionaryKey (*dict, "CFBundleShortVersionString",  marketingVersion);
         addPlistDictionaryKey (*dict, "CFBundleVersion",             currentProjectVersion);
         addPlistDictionaryKey (*dict, "NSHumanReadableCopyright",    companyCopyright);
-        addPlistDictionaryKey (*dict, "NSHighResolutionCapable", true);
+        addPlistDictionaryKey (*dict, "NSHighResolutionCapable",     true);
 
         if (applicationCategory.isNotEmpty())
             addPlistDictionaryKey (*dict, "LSApplicationCategoryType", applicationCategory);
@@ -190,6 +206,7 @@ namespace build_tools
                     addPlistDictionaryKey (*dict2, "CFBundleTypeRole", "Editor");
                     addPlistDictionaryKey (*dict2, "CFBundleTypeIconFile", "Icon");
                     addPlistDictionaryKey (*dict2, "NSPersistentStoreTypeKey", "XML");
+                    addPlistDictionaryKey (*dict2, "LSHandlerRank", "Default");
                 }
 
                 arrayTag->createNewChildElement ("string")->addTextElement (ex);
@@ -229,7 +246,7 @@ namespace build_tools
                 addPlistDictionaryKey (*audioComponentsDict, "manufacturer", pluginManufacturerCode.substring (0, 4));
                 addPlistDictionaryKey (*audioComponentsDict, "type",         IAATypeCode);
                 addPlistDictionaryKey (*audioComponentsDict, "subtype",      pluginCode.substring (0, 4));
-                addPlistDictionaryKey (*audioComponentsDict, "version",      versionAsHex);
+                addPlistDictionaryKey (*audioComponentsDict, "version",      getVersionAsHexInteger (marketingVersion));
 
                 dict->addChildElement (new XmlElement (audioComponentsPlistEntry));
             }
@@ -295,7 +312,7 @@ namespace build_tools
         addPlistDictionaryKey (*dict, "manufacturer", truncatedCode);
         addPlistDictionaryKey (*dict, "type", auMainType.removeCharacters ("'"));
         addPlistDictionaryKey (*dict, "subtype", pluginSubType);
-        addPlistDictionaryKey (*dict, "version", versionAsHex);
+        addPlistDictionaryKey (*dict, "version", getAUVersionAsHexInteger (*this));
 
         if (isAuSandboxSafe)
         {
@@ -308,6 +325,13 @@ namespace build_tools
 
             addPlistDictionaryKey (*resourceUsageDict, "network.client", true);
             addPlistDictionaryKey (*resourceUsageDict, "temporary-exception.files.all.read-write", true);
+        }
+
+        if (isPluginARAEffect)
+        {
+            dict->createNewChildElement ("key")->addTextElement ("tags");
+            auto* tagsArray = dict->createNewChildElement ("array");
+            tagsArray->createNewChildElement ("string")->addTextElement ("ARA");
         }
 
         return { plistKey, plistEntry };
@@ -336,7 +360,7 @@ namespace build_tools
         addPlistDictionaryKey (*componentDict, "manufacturer", pluginManufacturerCode.substring (0, 4));
         addPlistDictionaryKey (*componentDict, "type", auMainType.removeCharacters ("'"));
         addPlistDictionaryKey (*componentDict, "subtype", pluginCode.substring (0, 4));
-        addPlistDictionaryKey (*componentDict, "version", versionAsHex);
+        addPlistDictionaryKey (*componentDict, "version", getAUVersionAsHexInteger (*this));
         addPlistDictionaryKey (*componentDict, "sandboxSafe", true);
 
         componentDict->createNewChildElement ("key")->addTextElement ("tags");

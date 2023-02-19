@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -28,59 +28,40 @@ namespace juce
 
 //==============================================================================
 class UIAValueProvider  : public UIAProviderBase,
-                          public ComBaseClassHelper<IValueProvider>
+                          public ComBaseClassHelper<ComTypes::IValueProvider>
 {
 public:
-    UIAValueProvider (AccessibilityNativeHandle* nativeHandle)
-        : UIAProviderBase (nativeHandle)
-    {
-    }
+    using UIAProviderBase::UIAProviderBase;
 
     //==============================================================================
     JUCE_COMRESULT SetValue (LPCWSTR val) override
     {
         if (! isElementValid())
-            return UIA_E_ELEMENTNOTAVAILABLE;
+            return (HRESULT) UIA_E_ELEMENTNOTAVAILABLE;
 
         const auto& handler = getHandler();
+        auto& valueInterface = *handler.getValueInterface();
 
-        const auto sendValuePropertyChangeMessage = [&]()
-        {
-            VARIANT newValue;
-            VariantHelpers::setString (getCurrentValueString(), &newValue);
+        if (valueInterface.isReadOnly())
+            return (HRESULT) UIA_E_NOTSUPPORTED;
 
-            sendAccessibilityPropertyChangedEvent (handler, UIA_ValueValuePropertyId, newValue);
-        };
+        valueInterface.setValueAsString (String (val));
 
-        if (isEditableText (handler))
-        {
-            handler.getTextInterface()->setText (String (val));
-            sendValuePropertyChangeMessage();
+        VARIANT newValue;
+        VariantHelpers::setString (valueInterface.getCurrentValueAsString(), &newValue);
 
-            return S_OK;
-        }
+        sendAccessibilityPropertyChangedEvent (handler, UIA_ValueValuePropertyId, newValue);
 
-        if (auto* valueInterface = handler.getValueInterface())
-        {
-            if (! valueInterface->isReadOnly())
-            {
-                valueInterface->setValueAsString (String (val));
-                sendValuePropertyChangeMessage();
-
-                return S_OK;
-            }
-        }
-
-        return UIA_E_NOTSUPPORTED;
+        return S_OK;
     }
 
     JUCE_COMRESULT get_Value (BSTR* pRetVal) override
     {
         return withCheckedComArgs (pRetVal, *this, [&]
         {
-            auto currentValue = getCurrentValueString();
+            auto currentValueString = getHandler().getValueInterface()->getCurrentValueAsString();
 
-            *pRetVal = SysAllocString ((const OLECHAR*) currentValue.toWideCharPointer());
+            *pRetVal = SysAllocString ((const OLECHAR*) currentValueString.toWideCharPointer());
             return S_OK;
         });
     }
@@ -89,37 +70,12 @@ public:
     {
         return withCheckedComArgs (pRetVal, *this, [&]
         {
-            *pRetVal = true;
-
-            const auto& handler = getHandler();
-
-            if (isEditableText (handler)
-                || (handler.getValueInterface() != nullptr
-                    && ! handler.getValueInterface()->isReadOnly()))
-            {
-                *pRetVal = false;
-            }
-
+            *pRetVal = getHandler().getValueInterface()->isReadOnly();
             return S_OK;
         });
     }
 
 private:
-    String getCurrentValueString() const
-    {
-        const auto& handler = getHandler();
-
-        if (isEditableText (handler))
-            if (auto* textInterface = getHandler().getTextInterface())
-                return textInterface->getText ({ 0, textInterface->getTotalNumCharacters() });
-
-        if (auto* valueInterface = getHandler().getValueInterface())
-            return valueInterface->getCurrentValueAsString();
-
-        jassertfalse;
-        return {};
-    }
-
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UIAValueProvider)
 };

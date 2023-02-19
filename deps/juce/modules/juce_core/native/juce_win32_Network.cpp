@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -569,9 +569,9 @@ namespace MACAddressHelpers
         for (auto addr = start; addr != nullptr; addr = addr->Next)
         {
             if (addr->Address.lpSockaddr->sa_family == AF_INET)
-                result.addIfNotAlreadyThere (createAddress ((sockaddr_in*) addr->Address.lpSockaddr));
+                result.addIfNotAlreadyThere (createAddress (unalignedPointerCast<sockaddr_in*> (addr->Address.lpSockaddr)));
             else if (addr->Address.lpSockaddr->sa_family == AF_INET6 && includeIPv6)
-                result.addIfNotAlreadyThere (createAddress ((sockaddr_in6*) addr->Address.lpSockaddr));
+                result.addIfNotAlreadyThere (createAddress (unalignedPointerCast<sockaddr_in6*> (addr->Address.lpSockaddr)));
         }
     }
 }
@@ -673,9 +673,9 @@ bool JUCE_CALLTYPE Process::openEmailWithAttachments (const String& targetEmailA
     return mapiSendMail (0, 0, &message, MAPI_DIALOG | MAPI_LOGON_UI, 0) == SUCCESS_SUCCESS;
 }
 
-std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, String extraHeaders, DownloadTask::Listener* listener, bool shouldUsePost)
+std::unique_ptr<URL::DownloadTask> URL::downloadToFile (const File& targetLocation, const DownloadTaskOptions& options)
 {
-    return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, extraHeaders, listener, shouldUsePost);
+    return URL::DownloadTask::createFallbackDownloader (*this, targetLocation, options);
 }
 
 } // namespace juce

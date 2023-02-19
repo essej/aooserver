@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -72,11 +72,10 @@ namespace Ids
     DECLARE_ID (defaultUserModulePath);
     DECLARE_ID (vstLegacyFolder);
     DECLARE_ID (vst3Folder);
-    DECLARE_ID (rtasFolder);
     DECLARE_ID (auFolder);
     DECLARE_ID (vstLegacyPath);
-    DECLARE_ID (rtasPath);
     DECLARE_ID (aaxPath);
+    DECLARE_ID (araPath);
     DECLARE_ID (flags);
     DECLARE_ID (line);
     DECLARE_ID (index);
@@ -123,15 +122,15 @@ namespace Ids
     DECLARE_ID (vstBinaryLocation);
     DECLARE_ID (vst3BinaryLocation);
     DECLARE_ID (auBinaryLocation);
-    DECLARE_ID (rtasBinaryLocation);
     DECLARE_ID (aaxBinaryLocation);
     DECLARE_ID (unityPluginBinaryLocation);
     DECLARE_ID (enablePluginBinaryCopyStep);
     DECLARE_ID (stripLocalSymbols);
-    DECLARE_ID (osxSDK);
-    DECLARE_ID (osxCompatibility);
+    DECLARE_ID (macOSBaseSDK);
+    DECLARE_ID (macOSDeploymentTarget);
     DECLARE_ID (osxArchitecture);
-    DECLARE_ID (iosCompatibility);
+    DECLARE_ID (iosBaseSDK);
+    DECLARE_ID (iosDeploymentTarget);
     DECLARE_ID (xcodeSubprojects);
     DECLARE_ID (extraFrameworks);
     DECLARE_ID (frameworkSearchPaths);
@@ -150,6 +149,8 @@ namespace Ids
     DECLARE_ID (windowsTargetPlatformVersion);
     DECLARE_ID (debugInformationFormat);
     DECLARE_ID (IPPLibrary);
+    DECLARE_ID (IPP1ALibrary);
+    DECLARE_ID (MKL1ALibrary);
     DECLARE_ID (msvcModuleDefinitionFile);
     DECLARE_ID (bigIcon);
     DECLARE_ID (smallIcon);
@@ -161,7 +162,11 @@ namespace Ids
     DECLARE_ID (enableIncrementalLinking);
     DECLARE_ID (bundleIdentifier);
     DECLARE_ID (aaxIdentifier);
+    DECLARE_ID (araFactoryID);
+    DECLARE_ID (araDocumentArchiveID);
+    DECLARE_ID (araCompatibleArchiveIDs);
     DECLARE_ID (aaxFolder);
+    DECLARE_ID (araFolder);
     DECLARE_ID (compile);
     DECLARE_ID (noWarnings);
     DECLARE_ID (skipPCH);
@@ -193,6 +198,10 @@ namespace Ids
     DECLARE_ID (appSandbox);
     DECLARE_ID (appSandboxInheritance);
     DECLARE_ID (appSandboxOptions);
+    DECLARE_ID (appSandboxHomeDirRO);
+    DECLARE_ID (appSandboxHomeDirRW);
+    DECLARE_ID (appSandboxAbsDirRO);
+    DECLARE_ID (appSandboxAbsDirRW);
     DECLARE_ID (hardenedRuntime);
     DECLARE_ID (hardenedRuntimeOptions);
     DECLARE_ID (microphonePermissionNeeded);
@@ -225,7 +234,13 @@ namespace Ids
     DECLARE_ID (androidGradleSettingsContent);
     DECLARE_ID (androidCustomStringXmlElements);
     DECLARE_ID (androidBluetoothNeeded);
+    DECLARE_ID (androidBluetoothScanNeeded);
+    DECLARE_ID (androidBluetoothAdvertiseNeeded);
+    DECLARE_ID (androidBluetoothConnectNeeded);
     DECLARE_ID (androidExternalReadNeeded);
+    DECLARE_ID (androidReadMediaAudioPermission);
+    DECLARE_ID (androidReadMediaImagesPermission);
+    DECLARE_ID (androidReadMediaVideoPermission);
     DECLARE_ID (androidExternalWriteNeeded);
     DECLARE_ID (androidInAppBilling);
     DECLARE_ID (androidVibratePermissionNeeded);
@@ -257,6 +272,7 @@ namespace Ids
     DECLARE_ID (iosPushNotifications);
     DECLARE_ID (iosAppGroups);
     DECLARE_ID (iCloudPermissions);
+    DECLARE_ID (networkingMulticast);
     DECLARE_ID (iosDevelopmentTeamID);
     DECLARE_ID (iosAppGroupsId);
     DECLARE_ID (iosBluetoothPermissionNeeded);
@@ -268,10 +284,6 @@ namespace Ids
     DECLARE_ID (gradleToolchain);
     DECLARE_ID (gradleToolchainVersion);
     DECLARE_ID (linuxExtraPkgConfig);
-    DECLARE_ID (clionMakefileEnabled);
-    DECLARE_ID (clionXcodeEnabled);
-    DECLARE_ID (clionCodeBlocksEnabled);
-    DECLARE_ID (clionExePath);
     DECLARE_ID (font);
     DECLARE_ID (colour);
     DECLARE_ID (userNotes);
@@ -327,11 +339,12 @@ namespace Ids
     DECLARE_ID (buildVST3);
     DECLARE_ID (buildAU);
     DECLARE_ID (buildAUv3);
-    DECLARE_ID (buildRTAS);
     DECLARE_ID (buildAAX);
     DECLARE_ID (buildStandalone);
     DECLARE_ID (buildUnity);
+    DECLARE_ID (buildLV2);
     DECLARE_ID (enableIAA);
+    DECLARE_ID (enableARA);
     DECLARE_ID (pluginName);
     DECLARE_ID (pluginDesc);
     DECLARE_ID (pluginManufacturer);
@@ -351,12 +364,11 @@ namespace Ids
     DECLARE_ID (pluginAUExportPrefix);
     DECLARE_ID (pluginAUMainType);
     DECLARE_ID (pluginAUIsSandboxSafe);
-    DECLARE_ID (pluginRTASCategory);
-    DECLARE_ID (pluginRTASDisableBypass);
-    DECLARE_ID (pluginRTASDisableMultiMono);
     DECLARE_ID (pluginAAXCategory);
     DECLARE_ID (pluginAAXDisableBypass);
     DECLARE_ID (pluginAAXDisableMultiMono);
+    DECLARE_ID (pluginARAAnalyzableContent);
+    DECLARE_ID (pluginARATransformFlags);
     DECLARE_ID (pluginVSTNumMidiInputs);
     DECLARE_ID (pluginVSTNumMidiOutputs);
     DECLARE_ID (suppressPlistResourceUsage);
@@ -364,6 +376,7 @@ namespace Ids
     DECLARE_ID (exporters);
     DECLARE_ID (website);
     DECLARE_ID (mainClass);
+    DECLARE_ID (documentControllerClass);
     DECLARE_ID (moduleFlags);
     DECLARE_ID (projectLineFeed);
     DECLARE_ID (compilerFlagSchemes);
@@ -375,6 +388,13 @@ namespace Ids
     DECLARE_ID (guiEditorEnabled);
     DECLARE_ID (jucerFormatVersion);
     DECLARE_ID (buildNumber);
+    DECLARE_ID (lv2Uri);
+    DECLARE_ID (lv2UriUi);
+    DECLARE_ID (lv2BinaryLocation);
+
+    DECLARE_ID (osxSDK);
+    DECLARE_ID (osxCompatibility);
+    DECLARE_ID (iosCompatibility);
 
     const Identifier ID ("id");
     const Identifier ID_uppercase ("ID");

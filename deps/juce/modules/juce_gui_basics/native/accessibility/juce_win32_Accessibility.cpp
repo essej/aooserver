@@ -2,15 +2,15 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 6 End-User License
-   Agreement and JUCE Privacy Policy (both effective as of the 16th June 2020).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-6-licence
+   End User License Agreement: www.juce.com/juce-7-licence
    Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
@@ -25,6 +25,10 @@
 
 namespace juce
 {
+
+#define JUCE_NATIVE_ACCESSIBILITY_INCLUDED 1
+
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wlanguage-extension-token")
 
 static bool isStartingUpOrShuttingDown()
 {
@@ -59,18 +63,18 @@ public:
 
     ~AccessibilityNativeImpl()
     {
+        ComSmartPtr<IRawElementProviderSimple> provider;
+        accessibilityElement->QueryInterface (IID_PPV_ARGS (provider.resetAndGetPointerAddress()));
+
         accessibilityElement->invalidateElement();
         --providerCount;
 
-        if (auto* wrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
+        if (auto* uiaWrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
         {
-            ComSmartPtr<IRawElementProviderSimple> provider;
-            accessibilityElement->QueryInterface (IID_PPV_ARGS (provider.resetAndGetPointerAddress()));
+            uiaWrapper->disconnectProvider (provider);
 
-            wrapper->disconnectProvider (provider);
-
-            if (providerCount == 0)
-                wrapper->disconnectAllProviders();
+            if (providerCount == 0 && JUCEApplicationBase::isStandaloneApp())
+                uiaWrapper->disconnectAllProviders();
         }
     }
 
@@ -90,21 +94,39 @@ AccessibilityNativeHandle* AccessibilityHandler::getNativeImplementation() const
     return nativeImpl->accessibilityElement;
 }
 
+static bool areAnyAccessibilityClientsActive()
+{
+    const auto areClientsListening = []
+    {
+        if (auto* uiaWrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
+            return uiaWrapper->clientsAreListening() != 0;
+
+        return false;
+    };
+
+    const auto isScreenReaderRunning = []
+    {
+        BOOL isRunning = FALSE;
+        SystemParametersInfo (SPI_GETSCREENREADER, 0, (PVOID) &isRunning, 0);
+
+        return isRunning != 0;
+    };
+
+    return areClientsListening() || isScreenReaderRunning();
+}
+
 template <typename Callback>
 void getProviderWithCheckedWrapper (const AccessibilityHandler& handler, Callback&& callback)
 {
-    if (isStartingUpOrShuttingDown() || ! isHandlerValid (handler))
+    if (! areAnyAccessibilityClientsActive() || isStartingUpOrShuttingDown() || ! isHandlerValid (handler))
         return;
 
-    if (auto* wrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
+    if (auto* uiaWrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
     {
-        if (! wrapper->clientsAreListening())
-            return;
-
         ComSmartPtr<IRawElementProviderSimple> provider;
         handler.getNativeImplementation()->QueryInterface (IID_PPV_ARGS (provider.resetAndGetPointerAddress()));
 
-        callback (wrapper, provider);
+        callback (uiaWrapper, provider);
     }
 }
 
@@ -112,9 +134,9 @@ void sendAccessibilityAutomationEvent (const AccessibilityHandler& handler, EVEN
 {
     jassert (event != EVENTID{});
 
-    getProviderWithCheckedWrapper (handler,  [event] (WindowsUIAWrapper* wrapper, ComSmartPtr<IRawElementProviderSimple>& provider)
+    getProviderWithCheckedWrapper (handler, [event] (WindowsUIAWrapper* uiaWrapper, ComSmartPtr<IRawElementProviderSimple>& provider)
     {
-        wrapper->raiseAutomationEvent (provider, event);
+        uiaWrapper->raiseAutomationEvent (provider, event);
     });
 }
 
@@ -122,17 +144,19 @@ void sendAccessibilityPropertyChangedEvent (const AccessibilityHandler& handler,
 {
     jassert (property != PROPERTYID{});
 
-    getProviderWithCheckedWrapper (handler, [property, newValue] (WindowsUIAWrapper* wrapper, ComSmartPtr<IRawElementProviderSimple>& provider)
+    getProviderWithCheckedWrapper (handler, [property, newValue] (WindowsUIAWrapper* uiaWrapper, ComSmartPtr<IRawElementProviderSimple>& provider)
     {
         VARIANT oldValue;
         VariantHelpers::clear (&oldValue);
 
-        wrapper->raiseAutomationPropertyChangedEvent (provider, property, oldValue, newValue);
+        uiaWrapper->raiseAutomationPropertyChangedEvent (provider, property, oldValue, newValue);
     });
 }
 
 void notifyAccessibilityEventInternal (const AccessibilityHandler& handler, InternalAccessibilityEvent eventType)
 {
+    using namespace ComTypes::Constants;
+
     if (eventType == InternalAccessibilityEvent::elementCreated
         || eventType == InternalAccessibilityEvent::elementDestroyed)
     {
@@ -142,15 +166,24 @@ void notifyAccessibilityEventInternal (const AccessibilityHandler& handler, Inte
         return;
     }
 
+    if (eventType == InternalAccessibilityEvent::windowOpened
+        || eventType == InternalAccessibilityEvent::windowClosed)
+    {
+        if (auto* peer = handler.getComponent().getPeer())
+            if ((peer->getStyleFlags() & ComponentPeer::windowHasTitleBar) == 0)
+                return;
+    }
+
     auto event = [eventType]() -> EVENTID
     {
         switch (eventType)
         {
-            case InternalAccessibilityEvent::focusChanged:      return UIA_AutomationFocusChangedEventId;
-            case InternalAccessibilityEvent::windowOpened:      return UIA_Window_WindowOpenedEventId;
-            case InternalAccessibilityEvent::windowClosed:      return UIA_Window_WindowClosedEventId;
+            case InternalAccessibilityEvent::focusChanged:           return UIA_AutomationFocusChangedEventId;
+            case InternalAccessibilityEvent::windowOpened:           return UIA_Window_WindowOpenedEventId;
+            case InternalAccessibilityEvent::windowClosed:           return UIA_Window_WindowClosedEventId;
             case InternalAccessibilityEvent::elementCreated:
-            case InternalAccessibilityEvent::elementDestroyed:  break;
+            case InternalAccessibilityEvent::elementDestroyed:
+            case InternalAccessibilityEvent::elementMovedOrResized:  break;
         }
 
         return {};
@@ -162,14 +195,43 @@ void notifyAccessibilityEventInternal (const AccessibilityHandler& handler, Inte
 
 void AccessibilityHandler::notifyAccessibilityEvent (AccessibilityEvent eventType) const
 {
-    auto event = [eventType] () -> EVENTID
+    if (eventType == AccessibilityEvent::titleChanged)
     {
+        VARIANT newValue;
+        VariantHelpers::setString (getTitle(), &newValue);
+
+        sendAccessibilityPropertyChangedEvent (*this, UIA_NamePropertyId, newValue);
+        return;
+    }
+
+    if (eventType == AccessibilityEvent::valueChanged)
+    {
+        if (auto* valueInterface = getValueInterface())
+        {
+            const auto propertyType = getRole() == AccessibilityRole::slider ? UIA_RangeValueValuePropertyId
+                                                                             : UIA_ValueValuePropertyId;
+
+            const auto value = getRole() == AccessibilityRole::slider
+                               ? VariantHelpers::getWithValue (valueInterface->getCurrentValue())
+                               : VariantHelpers::getWithValue (valueInterface->getCurrentValueAsString());
+
+            sendAccessibilityPropertyChangedEvent (*this, propertyType, value);
+        }
+
+        return;
+    }
+
+    auto event = [eventType]() -> EVENTID
+    {
+        using namespace ComTypes::Constants;
+
         switch (eventType)
         {
             case AccessibilityEvent::textSelectionChanged:  return UIA_Text_TextSelectionChangedEventId;
             case AccessibilityEvent::textChanged:           return UIA_Text_TextChangedEventId;
             case AccessibilityEvent::structureChanged:      return UIA_StructureChangedEventId;
             case AccessibilityEvent::rowSelectionChanged:   return UIA_SelectionItem_ElementSelectedEventId;
+            case AccessibilityEvent::titleChanged:
             case AccessibilityEvent::valueChanged:          break;
         }
 
@@ -184,10 +246,9 @@ struct SpVoiceWrapper  : public DeletedAtShutdown
 {
     SpVoiceWrapper()
     {
-        auto hr = voice.CoCreateInstance (CLSID_SpVoice);
+        auto hr = voice.CoCreateInstance (ComTypes::CLSID_SpVoice);
 
-        jassert (SUCCEEDED (hr));
-        ignoreUnused (hr);
+        jassertquiet (SUCCEEDED (hr));
     }
 
     ~SpVoiceWrapper() override
@@ -205,6 +266,9 @@ JUCE_IMPLEMENT_SINGLETON (SpVoiceWrapper)
 
 void AccessibilityHandler::postAnnouncement (const String& announcementString, AnnouncementPriority priority)
 {
+    if (! areAnyAccessibilityClientsActive())
+        return;
+
     if (auto* sharedVoice = SpVoiceWrapper::getInstance())
     {
         auto voicePriority = [priority]
@@ -225,36 +289,26 @@ void AccessibilityHandler::postAnnouncement (const String& announcementString, A
     }
 }
 
-AccessibilityHandler::AccessibilityNativeImpl* AccessibilityHandler::createNativeImpl (AccessibilityHandler& handler)
-{
-    return new AccessibilityHandler::AccessibilityNativeImpl (handler);
-}
-
-void AccessibilityHandler::DestroyNativeImpl::operator() (AccessibilityHandler::AccessibilityNativeImpl* impl) const noexcept
-{
-    delete impl;
-}
-
 //==============================================================================
 namespace WindowsAccessibility
 {
-    long getUiaRootObjectId()
+    static long getUiaRootObjectId()
     {
         return static_cast<long> (UiaRootObjectId);
     }
 
-    bool handleWmGetObject (AccessibilityHandler* handler, WPARAM wParam, LPARAM lParam, LRESULT* res)
+    static bool handleWmGetObject (AccessibilityHandler* handler, WPARAM wParam, LPARAM lParam, LRESULT* res)
     {
         if (isStartingUpOrShuttingDown() || (handler == nullptr || ! isHandlerValid (*handler)))
             return false;
 
-        if (auto* wrapper = WindowsUIAWrapper::getInstance())
+        if (auto* uiaWrapper = WindowsUIAWrapper::getInstance())
         {
             ComSmartPtr<IRawElementProviderSimple> provider;
             handler->getNativeImplementation()->QueryInterface (IID_PPV_ARGS (provider.resetAndGetPointerAddress()));
 
-            if (! wrapper->isProviderDisconnecting (provider))
-                *res = wrapper->returnRawElementProvider ((HWND) handler->getComponent().getWindowHandle(), wParam, lParam, provider);
+            if (! uiaWrapper->isProviderDisconnecting (provider))
+                *res = uiaWrapper->returnRawElementProvider ((HWND) handler->getComponent().getWindowHandle(), wParam, lParam, provider);
 
             return true;
         }
@@ -262,14 +316,16 @@ namespace WindowsAccessibility
         return false;
     }
 
-    void revokeUIAMapEntriesForWindow (HWND hwnd)
+    static void revokeUIAMapEntriesForWindow (HWND hwnd)
     {
-        if (auto* wrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
-            wrapper->returnRawElementProvider (hwnd, 0, 0, nullptr);
+        if (auto* uiaWrapper = WindowsUIAWrapper::getInstanceWithoutCreating())
+            uiaWrapper->returnRawElementProvider (hwnd, 0, 0, nullptr);
     }
 }
 
 
 JUCE_IMPLEMENT_SINGLETON (WindowsUIAWrapper)
+
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
 } // namespace juce

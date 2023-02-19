@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -130,7 +130,7 @@ namespace juce
 //==============================================================================
 namespace DSoundLogging
 {
-    String getErrorMessage (HRESULT hr)
+    static String getErrorMessage (HRESULT hr)
     {
         const char* result = nullptr;
 
@@ -251,8 +251,8 @@ public:
         if (pOutputBuffer != nullptr)
         {
             JUCE_DS_LOG ("closing output: " + name);
-            HRESULT hr = pOutputBuffer->Stop();
-            JUCE_DS_LOG_ERROR (hr); ignoreUnused (hr);
+            [[maybe_unused]] HRESULT hr = pOutputBuffer->Stop();
+            JUCE_DS_LOG_ERROR (hr);
 
             pOutputBuffer->Release();
             pOutputBuffer = nullptr;
@@ -555,8 +555,8 @@ public:
         if (pInputBuffer != nullptr)
         {
             JUCE_DS_LOG ("closing input: " + name);
-            HRESULT hr = pInputBuffer->Stop();
-            JUCE_DS_LOG_ERROR (hr); ignoreUnused (hr);
+            [[maybe_unused]] HRESULT hr = pInputBuffer->Stop();
+            JUCE_DS_LOG_ERROR (hr);
 
             pInputBuffer->Release();
             pInputBuffer = nullptr;
@@ -764,7 +764,7 @@ public:
         }
     }
 
-    ~DSoundAudioIODevice()
+    ~DSoundAudioIODevice() override
     {
         close();
     }
@@ -1016,9 +1016,12 @@ public:
 
             if (isStarted)
             {
-                callback->audioDeviceIOCallback (inputBuffers.getArrayOfReadPointers(), inputBuffers.getNumChannels(),
-                                                 outputBuffers.getArrayOfWritePointers(), outputBuffers.getNumChannels(),
-                                                 bufferSizeSamples);
+                callback->audioDeviceIOCallbackWithContext (inputBuffers.getArrayOfReadPointers(),
+                                                            inputBuffers.getNumChannels(),
+                                                            outputBuffers.getArrayOfWritePointers(),
+                                                            outputBuffers.getNumChannels(),
+                                                            bufferSizeSamples,
+                                                            {});
             }
             else
             {
@@ -1032,8 +1035,14 @@ public:
 };
 
 //==============================================================================
-struct DSoundDeviceList
+class DSoundDeviceList
 {
+    auto tie() const
+    {
+        return std::tie (outputDeviceNames, inputDeviceNames, outputGuids, inputGuids);
+    }
+
+public:
     StringArray outputDeviceNames, inputDeviceNames;
     Array<GUID> outputGuids, inputGuids;
 
@@ -1051,13 +1060,8 @@ struct DSoundDeviceList
         }
     }
 
-    bool operator!= (const DSoundDeviceList& other) const noexcept
-    {
-        return outputDeviceNames != other.outputDeviceNames
-            || inputDeviceNames != other.inputDeviceNames
-            || outputGuids != other.outputGuids
-            || inputGuids != other.inputGuids;
-    }
+    bool operator== (const DSoundDeviceList& other) const noexcept { return tie() == other.tie(); }
+    bool operator!= (const DSoundDeviceList& other) const noexcept { return tie() != other.tie(); }
 
 private:
     static BOOL enumProc (LPGUID lpGUID, String desc, StringArray& names, Array<GUID>& guids)
@@ -1193,7 +1197,7 @@ String DSoundAudioIODevice::openDevice (const BigInteger& inputChannels,
         for (int i = 0; i < inChans.size(); ++i)
             inChans.getUnchecked(i)->synchronisePosition();
 
-        startThread (9);
+        startThread (Priority::highest);
         sleep (10);
 
         notify();
@@ -1210,13 +1214,11 @@ String DSoundAudioIODevice::openDevice (const BigInteger& inputChannels,
 }
 
 //==============================================================================
-class DSoundAudioIODeviceType  : public AudioIODeviceType,
-                                 private DeviceChangeDetector
+class DSoundAudioIODeviceType  : public AudioIODeviceType
 {
 public:
     DSoundAudioIODeviceType()
-        : AudioIODeviceType ("DirectSound"),
-          DeviceChangeDetector (L"DirectSound")
+        : AudioIODeviceType ("DirectSound")
     {
         initialiseDSoundFunctions();
     }
@@ -1271,19 +1273,17 @@ public:
     }
 
 private:
+    DeviceChangeDetector detector { L"DirectSound", [this] { systemDeviceChanged(); } };
     DSoundDeviceList deviceList;
     bool hasScanned = false;
 
-    void systemDeviceChanged() override
+    void systemDeviceChanged()
     {
         DSoundDeviceList newList;
         newList.scan();
 
-        if (newList != deviceList)
-        {
-            deviceList = newList;
+        if (std::exchange (deviceList, newList) != newList)
             callDeviceChangeListeners();
-        }
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DSoundAudioIODeviceType)

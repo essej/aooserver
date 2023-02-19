@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -37,12 +37,13 @@ struct CFObjectDeleter
 };
 
 template <typename CFType>
-using CFUniquePtr = std::unique_ptr<typename std::remove_pointer<CFType>::type, CFObjectDeleter<CFType>>;
+using CFUniquePtr = std::unique_ptr<std::remove_pointer_t<CFType>, CFObjectDeleter<CFType>>;
 
 template <typename CFType>
 struct CFObjectHolder
 {
     CFObjectHolder() = default;
+    explicit CFObjectHolder (CFType obj)  : object (obj) {}
 
     CFObjectHolder (const CFObjectHolder&) = delete;
     CFObjectHolder (CFObjectHolder&&) = delete;
