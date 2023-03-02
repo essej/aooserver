@@ -131,12 +131,12 @@
         <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;../../deps/aoo/deps"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../juce5/modules"/>
-        <MODULEPATH id="juce_core" path="../juce5/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../juce5/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../juce5/modules"/>
-        <MODULEPATH id="juce_events" path="../juce5/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_core" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_events" path="deps/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="USE_CODEC_OPUS=0&#10;AOO_HAVE_ATOMIC_INT64&#10;AOO_HAVE_ATOMIC_DOUBLE&#10;AOO_HAVE_PTHREAD_RWLOCK=1&#10;USE_AOO_NET=1&#10;AOO_NET=1">
@@ -146,22 +146,22 @@
         <CONFIGURATION isDebug="0" name="Release" headerPath="../../deps/aoo&#10;../../deps/aoo/include&#10;&#10;../../deps/aoo/deps"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../juce5/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../juce5/modules"/>
-        <MODULEPATH id="juce_core" path="../juce5/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../juce5/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../juce5/modules"/>
-        <MODULEPATH id="juce_events" path="../juce5/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_core" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_cryptography" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_data_structures" path="deps/juce/modules"/>
+        <MODULEPATH id="juce_events" path="deps/juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
   </EXPORTFORMATS>
   <MODULES>
-    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
-    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
-    <MODULE id="juce_core" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
-    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
-    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
-    <MODULE id="juce_events" showAllCode="1" useLocalCopy="1" useGlobalPath="1"/>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
+    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="1" useGlobalPath="0"/>
   </MODULES>
   <LIVE_SETTINGS>
     <OSX/>

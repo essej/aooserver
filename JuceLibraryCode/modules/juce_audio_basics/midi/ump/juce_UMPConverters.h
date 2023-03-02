@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -20,6 +20,8 @@
   ==============================================================================
 */
 
+#ifndef DOXYGEN
+
 namespace juce
 {
 namespace universal_midi_packets
@@ -33,7 +35,7 @@ namespace universal_midi_packets
     struct ToUMP1Converter
     {
         template <typename Fn>
-        void convert (const MidiMessage& m, Fn&& fn)
+        void convert (const BytestreamMidiView& m, Fn&& fn)
         {
             Conversion::toMidi1 (m, std::forward<Fn> (fn));
         }
@@ -54,7 +56,7 @@ namespace universal_midi_packets
     struct ToUMP2Converter
     {
         template <typename Fn>
-        void convert (const MidiMessage& m, Fn&& fn)
+        void convert (const BytestreamMidiView& m, Fn&& fn)
         {
             Conversion::toMidi1 (m, [&] (const View& v)
             {
@@ -96,7 +98,7 @@ namespace universal_midi_packets
         }
 
         template <typename Fn>
-        void convert (const MidiMessage& m, Fn&& fn)
+        void convert (const BytestreamMidiView& m, Fn&& fn)
         {
             switch (mode)
             {
@@ -163,3 +165,5 @@ namespace universal_midi_packets
     };
 }
 }
+
+#endif

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2020 - Raw Material Software Limited
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -19,6 +19,8 @@
 
   ==============================================================================
 */
+
+#ifndef DOXYGEN
 
 namespace juce
 {
@@ -121,7 +123,7 @@ public:
 
             void handleIncomingMidiMessage (void*, const MidiMessage& msg) const
             {
-                Conversion::toMidi1 (msg, [&] (const View& view)
+                Conversion::toMidi1 (BytestreamMidiView (&msg), [&] (const View& view)
                 {
                     dispatch.converter.convert (view, *callbackPtr);
                 });
@@ -196,3 +198,5 @@ private:
 
 }
 }
+
+#endif
