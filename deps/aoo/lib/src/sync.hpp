@@ -8,6 +8,7 @@
 #include <atomic>
 
 // for shared_lock
+#include <mutex>
 #include <shared_mutex>
 
 namespace aoo {
