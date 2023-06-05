@@ -68,8 +68,6 @@
         <FILE id="UxGOnO" name="source.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/source.cpp"/>
         <FILE id="jXojYx" name="source.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/source.hpp"/>
         <FILE id="Mzo03A" name="time_dll.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/time_dll.hpp"/>
-        <FILE id="yAD3tW" name="timer.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/timer.cpp"/>
-        <FILE id="UnT5vG" name="timer.hpp" compile="0" resource="0" file="deps/aoo/aoo/src/timer.hpp"/>
       </GROUP>
       <GROUP id="{706F8492-7F2C-7CB2-22D1-6B33E331C7F3}" name="aoo_headers">
         <GROUP id="{83C489DA-7A87-409B-A2FE-1170987FAE3E}" name="codec">
@@ -80,16 +78,18 @@
         <FILE id="OFilsP" name="aoo_client.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_client.h"/>
         <FILE id="nAtARN" name="aoo_client.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_client.hpp"/>
         <FILE id="hOfhjQ" name="aoo_codec.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_codec.h"/>
+        <FILE id="u91fTC" name="aoo_config.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_config.h"/>
         <FILE id="Lh75Aj" name="aoo_controls.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_controls.h"/>
         <FILE id="eltJ5I" name="aoo_defines.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_defines.h"/>
         <FILE id="gFnfNx" name="aoo_events.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_events.h"/>
-        <FILE id="xVOYnZ" name="aoo_net.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_net.h"/>
+        <FILE id="y8V7A4" name="aoo_requests.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_requests.h"/>
         <FILE id="dqQ11M" name="aoo_server.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_server.h"/>
         <FILE id="PBn5Qr" name="aoo_server.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_server.hpp"/>
         <FILE id="f1pCKF" name="aoo_sink.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_sink.h"/>
         <FILE id="AHu3K0" name="aoo_sink.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_sink.hpp"/>
         <FILE id="Vueqr2" name="aoo_source.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_source.h"/>
         <FILE id="AyAUbc" name="aoo_source.hpp" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_source.hpp"/>
+        <FILE id="KqskC1" name="aoo_types.h" compile="0" resource="0" file="deps/aoo/include/aoo/aoo_types.h"/>
       </GROUP>
       <GROUP id="{E5F706B2-4287-6271-525F-3AF9794819E5}" name="md5">
         <FILE id="u3nDxB" name="md5.c" compile="1" resource="0" file="deps/aoo/deps/md5/md5.c"/>

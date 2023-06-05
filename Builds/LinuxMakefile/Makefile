@@ -89,7 +89,6 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/resampler_6731b538.o \
   $(JUCE_OBJDIR)/sink_5807bc7a.o \
   $(JUCE_OBJDIR)/source_9287dd82.o \
-  $(JUCE_OBJDIR)/timer_1b6e908.o \
   $(JUCE_OBJDIR)/md5_22b917f0.o \
   $(JUCE_OBJDIR)/OscOutboundPacketStream_6ea031b3.o \
   $(JUCE_OBJDIR)/OscPrintReceivedElements_6e7e89f4.o \
@@ -199,11 +198,6 @@ $(JUCE_OBJDIR)/sink_5807bc7a.o: ../../deps/aoo/aoo/src/sink.cpp
 $(JUCE_OBJDIR)/source_9287dd82.o: ../../deps/aoo/aoo/src/source.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling source.cpp"
-	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
-
-$(JUCE_OBJDIR)/timer_1b6e908.o: ../../deps/aoo/aoo/src/timer.cpp
-	-$(V_AT)mkdir -p $(@D)
-	@echo "Compiling timer.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/md5_22b917f0.o: ../../deps/aoo/deps/md5/md5.c

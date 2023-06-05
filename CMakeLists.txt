@@ -73,6 +73,16 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "Targets")
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
 
+# include AOO
+set(AOO_BUILD_SHARED_LIBRARY OFF CACHE INTERNAL "" FORCE)
+set(AOO_BUILD_PD_EXTERNAL OFF CACHE INTERNAL "" FORCE)
+set(AOO_BUILD_SC_EXTENSION OFF CACHE INTERNAL "" FORCE)
+set(AOO_USE_CODEC_OPUS OFF CACHE INTERNAL "" FORCE)
+set(AOO_DYNAMIC_RESAMPLING OFF CACHE INTERNAL "" FORCE)
+
+add_subdirectory(deps/aoo EXCLUDE_FROM_ALL )
+
+
 # include JUCE
 
 add_subdirectory(deps/juce EXCLUDE_FROM_ALL )
@@ -92,6 +102,8 @@ set (HEADER_INCLUDES
     deps/aoo/include
     deps/aoo/deps
 )
+
+
 
 set (LIB_PATHS  "")
 
@@ -132,95 +144,9 @@ set(SourceFiles
     Source/Main.cpp
 )
 
-set(AOOSourceFiles
-
-deps/aoo/aoo/src/aoo.cpp
-deps/aoo/aoo/src/binmsg.hpp
-deps/aoo/aoo/src/codec
-deps/aoo/aoo/src/codec/pcm.cpp
-deps/aoo/aoo/src/detail.hpp
-deps/aoo/aoo/src/events.hpp
-deps/aoo/aoo/src/memory.hpp
-deps/aoo/aoo/src/net/client.cpp
-deps/aoo/aoo/src/net/client.hpp
-deps/aoo/aoo/src/net/client_endpoint.cpp
-deps/aoo/aoo/src/net/client_endpoint.hpp
-deps/aoo/aoo/src/net/client_events.hpp
-deps/aoo/aoo/src/net/detail.cpp
-deps/aoo/aoo/src/net/detail.hpp
-deps/aoo/aoo/src/net/event.hpp
-deps/aoo/aoo/src/net/message_buffer.cpp
-deps/aoo/aoo/src/net/message_buffer.hpp
-deps/aoo/aoo/src/net/osc_stream_receiver.hpp
-deps/aoo/aoo/src/net/peer.cpp
-deps/aoo/aoo/src/net/peer.hpp
-deps/aoo/aoo/src/net/server.cpp
-deps/aoo/aoo/src/net/server.hpp
-deps/aoo/aoo/src/net/server_events.hpp
-deps/aoo/aoo/src/packet_buffer.cpp
-deps/aoo/aoo/src/packet_buffer.hpp
-deps/aoo/aoo/src/resampler.cpp
-deps/aoo/aoo/src/resampler.hpp
-deps/aoo/aoo/src/rt_memory_pool.hpp
-deps/aoo/aoo/src/sink.cpp
-deps/aoo/aoo/src/sink.hpp
-deps/aoo/aoo/src/source.cpp
-deps/aoo/aoo/src/source.hpp
-deps/aoo/aoo/src/time_dll.hpp
-deps/aoo/aoo/src/timer.cpp
-deps/aoo/aoo/src/timer.hpp
-
-deps/aoo/common/lockfree.hpp
-deps/aoo/common/net_utils.cpp
-deps/aoo/common/net_utils.hpp
-deps/aoo/common/priority_queue.hpp
-deps/aoo/common/sync.cpp
-deps/aoo/common/sync.hpp
-deps/aoo/common/tcp_server.cpp
-deps/aoo/common/tcp_server.hpp
-deps/aoo/common/time.cpp
-deps/aoo/common/time.hpp
-deps/aoo/common/udp_server.cpp
-deps/aoo/common/udp_server.hpp
-deps/aoo/common/utils.hpp
-
-deps/aoo/include/aoo/aoo.h
-deps/aoo/include/aoo/aoo_client.h
-deps/aoo/include/aoo/aoo_client.hpp
-deps/aoo/include/aoo/aoo_codec.h
-deps/aoo/include/aoo/aoo_controls.h
-deps/aoo/include/aoo/aoo_defines.h
-deps/aoo/include/aoo/aoo_events.h
-deps/aoo/include/aoo/aoo_net.h
-deps/aoo/include/aoo/aoo_server.h
-deps/aoo/include/aoo/aoo_server.hpp
-deps/aoo/include/aoo/aoo_sink.h
-deps/aoo/include/aoo/aoo_sink.hpp
-deps/aoo/include/aoo/aoo_source.h
-deps/aoo/include/aoo/aoo_source.hpp
-deps/aoo/include/aoo/codec/aoo_pcm.h
-
-deps/aoo/deps/oscpack/osc/MessageMappingOscPacketListener.h
-deps/aoo/deps/oscpack/osc/OscException.h
-deps/aoo/deps/oscpack/osc/OscHostEndianness.h
-deps/aoo/deps/oscpack/osc/OscOutboundPacketStream.cpp
-deps/aoo/deps/oscpack/osc/OscOutboundPacketStream.h
-deps/aoo/deps/oscpack/osc/OscPacketListener.h
-deps/aoo/deps/oscpack/osc/OscPrintReceivedElements.cpp
-deps/aoo/deps/oscpack/osc/OscPrintReceivedElements.h
-deps/aoo/deps/oscpack/osc/OscReceivedElements.cpp
-deps/aoo/deps/oscpack/osc/OscReceivedElements.h
-deps/aoo/deps/oscpack/osc/OscTypes.cpp
-deps/aoo/deps/oscpack/osc/OscTypes.h
-
-deps/aoo/deps/md5/md5.c
-deps/aoo/deps/md5/md5.h
-
-)
 
 target_sources(aooserver PRIVATE 
        ${SourceFiles} 
-       ${AOOSourceFiles}
    )
 
 # No, we don't want our source buried in extra nested folders
@@ -288,6 +214,7 @@ target_link_libraries(aooserver
     juce::juce_data_structures
     juce::juce_core
     juce::juce_events
+    AOO_STATIC
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags

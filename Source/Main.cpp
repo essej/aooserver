@@ -10,7 +10,7 @@
 
 #include "JuceHeader.h"
 
-#include "aoo/aoo_net.h"
+#include "aoo/aoo.h"
 #include "aoo/aoo_server.hpp"
 #include "common/net_utils.hpp"
 #include "common/udp_server.hpp"
@@ -111,7 +111,10 @@ public:
                          [this](auto&&... args) { return handleReceive(args...); });
 
         
-        mServer = AooServer::create(0, &err);
+		auto flags = aoo::socket_family(udpserver_.socket()) == aoo::ip_address::IPv6 ? kAooSocketDualStack : kAooSocketIPv4;
+		
+        mServer = AooServer::create(&err);
+		mServer->setup(mPort, flags);
 
         if (!mServer || err != 0) {
             String errstr;
@@ -287,7 +290,7 @@ public:
         }
     }
 
-    AooId handleAccept(int e, const aoo::ip_address& addr, AooSocket sock)
+    AooId handleAccept(int e, const aoo::ip_address& addr)
     {
         if (e == 0) {
             // reply function
@@ -296,7 +299,7 @@ public:
                 return static_cast<aoo::tcp_server *>(x)->send(client, data, size);
             };
             AooId client;
-            mServer->addClient(replyfn, &tcpserver_, sock, &client); // doesn't fail
+            mServer->addClient(replyfn, &tcpserver_, &client); // doesn't fail
 
             String msg;
             msg << "ClientAccept," << addr.name_unmapped();
@@ -313,7 +316,7 @@ public:
     }
     
 
-    void handleReceive(AooId client, int e, const AooByte *data, AooSize size)
+    void handleReceive(int e, AooId client, const aoo::ip_address& addr, const AooByte *data, AooSize size)
     {
         if (e == 0 && size > 0) {
             if (mServer->handleClientMessage(client, data, (AooInt32)size) != kAooOk) {
@@ -358,49 +361,37 @@ public:
     int32_t handleServerEvent(const AooEvent *event, int32_t level)
     {
         switch (event->type){
-            case kAooEventServerClientLogin:
+            case kAooEventClientLogin:
             {
-                auto *e = (const AooEventServerClientLogin *)event;
+                auto *e = (const AooEventClientLogin *)event;
 
                 String msg;
                 msg << "ClientLogin," << e->id;
                 logEvent(msg);
                 
-                mClients[e->id] = ClientInfo(e->id, e->sockfd);
+                //mClients[e->id] = ClientInfo(e->id);
                 
                 break;
             }
-            case kAooEventServerClientRemove:
+            case kAooEventGroupAdd:
             {
-                auto *e = (const AooEventServerClientRemove *)event;
-
-                String msg;
-                msg << "ClientRemove," << e->id;
-                logEvent(msg);
-                
-                mClients.erase(e->id);
-
-                break;
-            }
-            case kAooEventServerGroupAdd:
-            {
-                auto e = (const AooEventServerGroupAdd *)event;
+                auto e = (const AooEventGroupAdd *)event;
 
                 mGroups[e->id] = GroupInfo(e->id, e->name);
 
                 break;
             }
-            case kAooEventServerGroupRemove:
+            case kAooEventGroupRemove:
             {
-                auto e = (const AooEventServerGroupRemove *)event;
+                auto e = (const AooEventGroupRemove *)event;
 
                 mGroups.erase(e->id);
 
                 break;
             }
-            case kAooEventServerGroupJoin:
+            case kAooEventGroupJoin:
             {
-                auto *e = (const AooEventServerGroupJoin *)event;
+                auto *e = (const AooEventGroupJoin *)event;
                 
                 String msg;
                 msg << "UserGroupJoin," << e->groupName << "," << e->userName;
@@ -410,9 +401,9 @@ public:
 
                 break;
             }
-            case kAooEventServerGroupLeave:
+            case kAooEventGroupLeave:
             {
-                auto *e = (const AooEventServerGroupLeave *)event;
+                auto *e = (const AooEventGroupLeave *)event;
 
                 String msg;
                 msg << "UserGroupLeave," << e->groupName << "," << e->userName;
