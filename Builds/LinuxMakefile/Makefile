@@ -77,6 +77,7 @@ OBJECTS_CONSOLEAPP := \
   $(JUCE_OBJDIR)/tcp_server_7c885c41.o \
   $(JUCE_OBJDIR)/time_bb6fb7ed.o \
   $(JUCE_OBJDIR)/udp_server_4ce92c61.o \
+  $(JUCE_OBJDIR)/null_5b4a45c7.o \
   $(JUCE_OBJDIR)/pcm_77442024.o \
   $(JUCE_OBJDIR)/client_d3ef9be4.o \
   $(JUCE_OBJDIR)/client_endpoint_a843d35a.o \
@@ -138,6 +139,11 @@ $(JUCE_OBJDIR)/time_bb6fb7ed.o: ../../deps/aoo/common/time.cpp
 $(JUCE_OBJDIR)/udp_server_4ce92c61.o: ../../deps/aoo/common/udp_server.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling udp_server.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/null_5b4a45c7.o: ../../deps/aoo/aoo/src/codec/null.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling null.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_CONSOLEAPP) $(JUCE_CFLAGS_CONSOLEAPP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/pcm_77442024.o: ../../deps/aoo/aoo/src/codec/pcm.cpp

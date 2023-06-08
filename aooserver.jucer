@@ -22,6 +22,7 @@
       </GROUP>
       <GROUP id="{2DF67E37-6AF9-3BAB-4A3C-BDD62DA1FF2B}" name="aoo_source">
         <GROUP id="{1ECDA15A-1B25-FF6D-9AD8-30195F800B33}" name="codec">
+          <FILE id="QhwJ72" name="null.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/codec/null.cpp"/>
           <FILE id="Qji6MO" name="opus.cpp" compile="0" resource="0" file="deps/aoo/aoo/src/codec/opus.cpp"/>
           <FILE id="CvdhFL" name="pcm.cpp" compile="1" resource="0" file="deps/aoo/aoo/src/codec/pcm.cpp"/>
         </GROUP>
