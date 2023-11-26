@@ -21,11 +21,15 @@ which you can copy to a system binary location of your choice
     aooserver -h|--help                 Prints the list of commands
     aooserver -l|--logdir logdirectory  Enables logging to file
     aooserver -p|--port <server_port>   Specify the server port (default 10998)
+    aooserver -b|--blocklist filename   File containing IP addresses to block
 
 You can specify a different port than the default that the server uses (this
 is for both TCP and UDP). You can specify if timestamped log files should be
 created in a particular directory, otherwise logging will only go to the standard
-output (which it always does).
+output (which it always does). The blocklist lets you specify a file containing IP addresses
+that the server should block from being allowed to be used. If a line has an IP address
+followed by a comma and the word public (`1.2.3.4,public` for example), then it will allow 
+the IP to be used for private groups, but not present any of the public groups to that user.
 
 
 # SOURCE NOTES
@@ -37,5 +41,5 @@ JUCE is used here mostly as a hedge against future development, when
 this server might have some additional audio processing capabilities. All
 the JUCE source code necessary to build it is included in JuceLibraryCode,
 as installed by ProJucer when using the aooserver.jucer as source. If you
-want to contribute to further development, you'll need to have JUCE 5 installed
-elsewhere.
+want to contribute to further development or build for other platforms, you'll need to have 
+JUCE 7 installed elsewhere.
