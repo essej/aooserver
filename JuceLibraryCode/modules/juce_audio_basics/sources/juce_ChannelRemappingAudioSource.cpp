@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -153,10 +153,10 @@ std::unique_ptr<XmlElement> ChannelRemappingAudioSource::createXml() const
     const ScopedLock sl (lock);
 
     for (int i = 0; i < remappedInputs.size(); ++i)
-        ins << remappedInputs.getUnchecked(i) << ' ';
+        ins << remappedInputs.getUnchecked (i) << ' ';
 
     for (int i = 0; i < remappedOutputs.size(); ++i)
-        outs << remappedOutputs.getUnchecked(i) << ' ';
+        outs << remappedOutputs.getUnchecked (i) << ' ';
 
     e->setAttribute ("inputs", ins.trimEnd());
     e->setAttribute ("outputs", outs.trimEnd());

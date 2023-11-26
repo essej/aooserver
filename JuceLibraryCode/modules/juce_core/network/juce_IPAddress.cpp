@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -90,10 +90,10 @@ IPAddress::IPAddress (uint16 a1, uint16 a2, uint16 a3, uint16 a4,
 
 IPAddress::IPAddress (uint32 n) noexcept : isIPv6 (false)
 {
-    address[0] = (n >> 24);
-    address[1] = (n >> 16) & 255;
-    address[2] = (n >> 8) & 255;
-    address[3] = (n & 255);
+    address[0] = static_cast<uint8> (n >> 24);
+    address[1] = static_cast<uint8> ((n >> 16) & 255);
+    address[2] = static_cast<uint8> ((n >> 8) & 255);
+    address[3] = static_cast<uint8> ((n & 255));
 
     zeroUnusedBytes (address);
 }
@@ -166,7 +166,7 @@ IPAddress::IPAddress (const String& adr)
             }
 
             IPAddressByteUnion temp;
-            temp.combined = (uint16) CharacterFunctions::HexParser<int>::parse (tokens[i].getCharPointer());
+            temp.combined = CharacterFunctions::HexParser<uint16>::parse (tokens[i].getCharPointer());
 
             address[i * 2]     = temp.split[0];
             address[i * 2 + 1] = temp.split[1];
@@ -365,6 +365,14 @@ IPAddress IPAddress::getLocalAddress (bool includeIPv6)
     return local();
 }
 
+Array<IPAddress::IPAddressInterfaceNamePair> IPAddress::getAllInterfaceAddresses (bool includeIPv6)
+{
+    Array<IPAddressInterfaceNamePair> infos;
+    findAllInterfaceAddresses (infos, includeIPv6);
+    return infos;    
+}
+
+
 Array<IPAddress> IPAddress::getAllAddresses (bool includeIPv6)
 {
     Array<IPAddress> addresses;
@@ -377,7 +385,7 @@ Array<IPAddress> IPAddress::getAllAddresses (bool includeIPv6)
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-struct IPAddressTests : public UnitTest
+struct IPAddressTests final : public UnitTest
 {
     IPAddressTests()
         : UnitTest ("IPAddress", UnitTestCategories::networking)

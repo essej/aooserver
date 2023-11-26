@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -27,7 +26,7 @@
 namespace juce
 {
 
-class ValueTree::SharedObject  : public ReferenceCountedObject
+class ValueTree::SharedObject final : public ReferenceCountedObject
 {
 public:
     using Ptr = ReferenceCountedObjectPtr<SharedObject>;
@@ -47,7 +46,7 @@ public:
 
     SharedObject& operator= (const SharedObject&) = delete;
 
-    ~SharedObject()
+    ~SharedObject() override
     {
         jassert (parent == nullptr); // this should never happen unless something isn't obeying the ref-counting!
 
@@ -409,7 +408,7 @@ public:
     }
 
     //==============================================================================
-    struct SetPropertyAction  : public UndoableAction
+    struct SetPropertyAction final : public UndoableAction
     {
         SetPropertyAction (Ptr targetObject, const Identifier& propertyName,
                            const var& newVal, const var& oldVal, bool isAdding, bool isDeleting,
@@ -473,7 +472,7 @@ public:
     };
 
     //==============================================================================
-    struct AddOrRemoveChildAction  : public UndoableAction
+    struct AddOrRemoveChildAction final : public UndoableAction
     {
         AddOrRemoveChildAction (Ptr parentObject, int index, SharedObject* newChild)
             : target (std::move (parentObject)),
@@ -525,7 +524,7 @@ public:
     };
 
     //==============================================================================
-    struct MoveChildAction  : public UndoableAction
+    struct MoveChildAction final : public UndoableAction
     {
         MoveChildAction (Ptr parentObject, int fromIndex, int toIndex) noexcept
             : parent (std::move (parentObject)), startIndex (fromIndex), endIndex (toIndex)
@@ -579,8 +578,6 @@ public:
 ValueTree::ValueTree() noexcept
 {
 }
-
-JUCE_DECLARE_DEPRECATED_STATIC (const ValueTree ValueTree::invalid;)
 
 ValueTree::ValueTree (const Identifier& type)  : object (new ValueTree::SharedObject (type))
 {
@@ -672,6 +669,9 @@ void ValueTree::copyPropertiesFrom (const ValueTree& source, UndoManager* undoMa
 {
     jassert (object != nullptr || source.object == nullptr); // Trying to add properties to a null ValueTree will fail!
 
+    if (source == *this)
+        return;
+
     if (source.object == nullptr)
         removeAllProperties (undoManager);
     else if (object != nullptr)
@@ -681,6 +681,9 @@ void ValueTree::copyPropertiesFrom (const ValueTree& source, UndoManager* undoMa
 void ValueTree::copyPropertiesAndChildrenFrom (const ValueTree& source, UndoManager* undoManager)
 {
     jassert (object != nullptr || source.object == nullptr); // Trying to copy to a null ValueTree will fail!
+
+    if (source == *this)
+        return;
 
     copyPropertiesFrom (source, undoManager);
     removeAllChildren (undoManager);
@@ -806,8 +809,8 @@ int ValueTree::getReferenceCount() const noexcept
 }
 
 //==============================================================================
-struct ValueTreePropertyValueSource  : public Value::ValueSource,
-                                       private ValueTree::Listener
+struct ValueTreePropertyValueSource final : public Value::ValueSource,
+                                            private ValueTree::Listener
 {
     ValueTreePropertyValueSource (const ValueTree& vt, const Identifier& prop, UndoManager* um, bool sync)
         : tree (vt), property (prop), undoManager (um), updateSynchronously (sync)
@@ -870,7 +873,7 @@ ValueTree::Iterator::Iterator (const ValueTree& v, bool isEnd)
 
 ValueTree::Iterator& ValueTree::Iterator::operator++()
 {
-    internal = static_cast<SharedObject**> (internal) + 1;
+    ++internal;
     return *this;
 }
 
@@ -879,7 +882,7 @@ bool ValueTree::Iterator::operator!= (const Iterator& other) const  { return int
 
 ValueTree ValueTree::Iterator::operator*() const
 {
-    return ValueTree (SharedObject::Ptr (*static_cast<SharedObject**> (internal)));
+    return ValueTree (SharedObject::Ptr (*internal));
 }
 
 ValueTree::Iterator ValueTree::begin() const noexcept   { return Iterator (*this, false); }
@@ -950,19 +953,16 @@ void ValueTree::moveChild (int currentIndex, int newIndex, UndoManager* undoMana
 //==============================================================================
 void ValueTree::createListOfChildren (OwnedArray<ValueTree>& list) const
 {
-    jassert (object != nullptr);
-
-    for (auto* o : object->children)
-    {
-        jassert (o != nullptr);
-        list.add (new ValueTree (*o));
-    }
+    if (object != nullptr)
+        for (auto* o : object->children)
+            if (o != nullptr)
+                list.add (new ValueTree (*o));
 }
 
 void ValueTree::reorderChildren (const OwnedArray<ValueTree>& newOrder, UndoManager* undoManager)
 {
-    jassert (object != nullptr);
-    object->reorderChildren (newOrder, undoManager);
+    if (object != nullptr)
+        object->reorderChildren (newOrder, undoManager);
 }
 
 //==============================================================================
@@ -1004,7 +1004,7 @@ ValueTree ValueTree::fromXml (const XmlElement& xml)
         ValueTree v (xml.getTagName());
         v.object->properties.setFromXmlAttributes (xml);
 
-        forEachXmlChildElement (xml, e)
+        for (auto* e : xml.getChildIterator())
             v.appendChild (fromXml (*e), nullptr);
 
         return v;
@@ -1101,12 +1101,24 @@ void ValueTree::Listener::valueTreeChildOrderChanged (ValueTree&, int, int)     
 void ValueTree::Listener::valueTreeParentChanged     (ValueTree&)                    {}
 void ValueTree::Listener::valueTreeRedirected        (ValueTree&)                    {}
 
+//==============================================================================
+#if JUCE_ALLOW_STATIC_NULL_VARIABLES
+
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4996)
+
+const ValueTree ValueTree::invalid;
+
+JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+JUCE_END_IGNORE_WARNINGS_MSVC
+
+#endif
 
 //==============================================================================
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class ValueTreeTests  : public UnitTest
+class ValueTreeTests final : public UnitTest
 {
 public:
     ValueTreeTests()

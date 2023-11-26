@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -93,14 +92,13 @@ namespace FlacNamespace
 {
 #if JUCE_INCLUDE_FLAC_CODE || ! defined (JUCE_INCLUDE_FLAC_CODE)
 
- #undef VERSION
- #define VERSION "1.3.1"
+ #undef PACKAGE_VERSION
+ #define PACKAGE_VERSION "1.3.4"
 
  #define FLAC__NO_DLL 1
 
- #if JUCE_MSVC
-  #pragma warning (disable: 4267 4127 4244 4996 4100 4701 4702 4013 4133 4206 4312 4505 4365 4005 4334 181 111)
- #else
+ JUCE_BEGIN_IGNORE_WARNINGS_MSVC (4267 4127 4244 4996 4100 4701 4702 4013 4133 4206 4312 4505 4365 4005 4334 181 111 6340 6308 6297 6001 6320)
+ #if ! JUCE_MSVC
   #define HAVE_LROUND 1
  #endif
 
@@ -112,22 +110,17 @@ namespace FlacNamespace
   #define SIZE_MAX 0xffffffff
  #endif
 
- #if JUCE_CLANG
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wconversion"
-  #pragma clang diagnostic ignored "-Wshadow"
-  #pragma clang diagnostic ignored "-Wdeprecated-register"
-  #if __has_warning("-Wzero-as-null-pointer-constant")
-   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-  #endif
- #endif
-
- #if JUCE_GCC
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
-  #pragma GCC diagnostic ignored "-Wconversion"
-  #pragma GCC diagnostic ignored "-Wsign-conversion"
- #endif
+ JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wconversion",
+                                      "-Wdeprecated-register",
+                                      "-Wfloat-equal",
+                                      "-Wimplicit-fallthrough",
+                                      "-Wlanguage-extension-token",
+                                      "-Wredundant-decls",
+                                      "-Wshadow",
+                                      "-Wsign-conversion",
+                                      "-Wswitch-default",
+                                      "-Wswitch-enum",
+                                      "-Wzero-as-null-pointer-constant")
 
  #if JUCE_INTEL
   #if JUCE_32BIT
@@ -139,11 +132,17 @@ namespace FlacNamespace
   #define FLAC__HAS_X86INTRIN 1
  #endif
 
- #undef __STDC_LIMIT_MACROS
- #define __STDC_LIMIT_MACROS 1
  #define flac_max jmax
  #define flac_min jmin
- #undef DEBUG // (some flac code dumps debug trace if the app defines this macro)
+
+ #pragma push_macro ("DEBUG")
+ #pragma push_macro ("NDEBUG")
+ #undef  DEBUG  // (some flac code dumps debug trace if the app defines this macro)
+
+ #ifndef NDEBUG
+  #define NDEBUG // (some flac code prints cpu info if this isn't defined)
+ #endif
+
  #include "flac/all.h"
  #include "flac/libFLAC/bitmath.c"
  #include "flac/libFLAC/bitreader.c"
@@ -160,18 +159,18 @@ namespace FlacNamespace
  #include "flac/libFLAC/stream_encoder.c"
  #include "flac/libFLAC/stream_encoder_framing.c"
  #include "flac/libFLAC/window_flac.c"
- #undef VERSION
+
+ #pragma pop_macro ("DEBUG")
+ #pragma pop_macro ("NDEBUG")
+
+ #undef PACKAGE_VERSION
+
+ JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+ JUCE_END_IGNORE_WARNINGS_MSVC
+
 #else
  #include <FLAC/all.h>
 #endif
-
- #if JUCE_CLANG
-  #pragma clang diagnostic pop
- #endif
-
- #if JUCE_GCC
-  #pragma GCC diagnostic pop
- #endif
 }
 
 #undef max
@@ -180,9 +179,11 @@ namespace FlacNamespace
 //==============================================================================
 static const char* const flacFormatName = "FLAC file";
 
+template <typename Item>
+auto emptyRange (Item item) { return Range<Item>::emptyRange (item); }
 
 //==============================================================================
-class FlacReader  : public AudioFormatReader
+class FlacReader final : public AudioFormatReader
 {
 public:
     FlacReader (InputStream* in)  : AudioFormatReader (in, flacFormatName)
@@ -230,66 +231,62 @@ public:
         reservoir.setSize ((int) numChannels, 2 * (int) info.max_blocksize, false, false, true);
     }
 
-    // returns the number of samples read
-    bool readSamples (int** destSamples, int numDestChannels, int startOffsetInDestBuffer,
+    bool readSamples (int* const* destSamples, int numDestChannels, int startOffsetInDestBuffer,
                       int64 startSampleInFile, int numSamples) override
     {
         if (! ok)
             return false;
 
-        while (numSamples > 0)
+        const auto getBufferedRange = [this] { return bufferedRange; };
+
+        const auto readFromReservoir = [this, &destSamples, &numDestChannels, &startOffsetInDestBuffer, &startSampleInFile] (const Range<int64> rangeToRead)
         {
-            if (startSampleInFile >= reservoirStart
-                 && startSampleInFile < reservoirStart + samplesInReservoir)
+            const auto bufferIndices = rangeToRead - bufferedRange.getStart();
+            const auto writePos = (int64) startOffsetInDestBuffer + (rangeToRead.getStart() - startSampleInFile);
+
+            for (int i = jmin (numDestChannels, reservoir.getNumChannels()); --i >= 0;)
             {
-                auto num = (int) jmin ((int64) numSamples,
-                                       reservoirStart + samplesInReservoir - startSampleInFile);
-
-                jassert (num > 0);
-
-                for (int i = jmin (numDestChannels, reservoir.getNumChannels()); --i >= 0;)
-                    if (destSamples[i] != nullptr)
-                        memcpy (destSamples[i] + startOffsetInDestBuffer,
-                                reservoir.getReadPointer (i, (int) (startSampleInFile - reservoirStart)),
-                                (size_t) num * sizeof (int));
-
-                startOffsetInDestBuffer += num;
-                startSampleInFile += num;
-                numSamples -= num;
+                if (destSamples[i] != nullptr)
+                {
+                    memcpy (destSamples[i] + writePos,
+                            reservoir.getReadPointer (i) + bufferIndices.getStart(),
+                            (size_t) bufferIndices.getLength() * sizeof (int));
+                }
             }
-            else
-            {
-                if (startSampleInFile >= lengthInSamples)
-                {
-                    samplesInReservoir = 0;
-                }
-                else if (startSampleInFile < reservoirStart
-                          || startSampleInFile > reservoirStart + jmax (samplesInReservoir, 511))
-                {
-                    // had some problems with flac crashing if the read pos is aligned more
-                    // accurately than this. Probably fixed in newer versions of the library, though.
-                    reservoirStart = (int) (startSampleInFile & ~511);
-                    samplesInReservoir = 0;
-                    FLAC__stream_decoder_seek_absolute (decoder, (FlacNamespace::FLAC__uint64) reservoirStart);
-                }
-                else
-                {
-                    reservoirStart += samplesInReservoir;
-                    samplesInReservoir = 0;
-                    FLAC__stream_decoder_process_single (decoder);
-                }
+        };
 
-                if (samplesInReservoir == 0)
-                    break;
-            }
-        }
-
-        if (numSamples > 0)
+        const auto fillReservoir = [this] (const int64 requestedStart)
         {
+            if (requestedStart >= lengthInSamples)
+            {
+                bufferedRange = emptyRange (requestedStart);
+                return;
+            }
+
+            if (requestedStart < bufferedRange.getStart()
+                || jmax (bufferedRange.getEnd(), bufferedRange.getStart() + (int64) 511) < requestedStart)
+            {
+                // had some problems with flac crashing if the read pos is aligned more
+                // accurately than this. Probably fixed in newer versions of the library, though.
+                bufferedRange = emptyRange (requestedStart & ~511);
+                FLAC__stream_decoder_seek_absolute (decoder, (FlacNamespace::FLAC__uint64) bufferedRange.getStart());
+                return;
+            }
+
+            bufferedRange = emptyRange (bufferedRange.getEnd());
+            FLAC__stream_decoder_process_single (decoder);
+        };
+
+        const auto remainingSamples = Reservoir::doBufferedRead (Range<int64> { startSampleInFile, startSampleInFile + numSamples },
+                                                                 getBufferedRange,
+                                                                 readFromReservoir,
+                                                                 fillReservoir);
+
+        if (! remainingSamples.isEmpty())
             for (int i = numDestChannels; --i >= 0;)
                 if (destSamples[i] != nullptr)
-                    zeromem (destSamples[i] + startOffsetInDestBuffer, (size_t) numSamples * sizeof (int));
-        }
+                    zeromem (destSamples[i] + startOffsetInDestBuffer + (remainingSamples.getStart() - startSampleInFile),
+                             (size_t) remainingSamples.getLength() * sizeof (int));
 
         return true;
     }
@@ -317,14 +314,14 @@ public:
 
                 if (src != nullptr)
                 {
-                    auto* dest = reinterpret_cast<int*> (reservoir.getWritePointer(i));
+                    auto* dest = reinterpret_cast<int*> (reservoir.getWritePointer (i));
 
                     for (int j = 0; j < numSamples; ++j)
                         dest[j] = src[j] << bitsToShift;
                 }
             }
 
-            samplesInReservoir = numSamples;
+            bufferedRange.setLength (numSamples);
         }
     }
 
@@ -381,7 +378,7 @@ public:
 private:
     FlacNamespace::FLAC__StreamDecoder* decoder;
     AudioBuffer<float> reservoir;
-    int reservoirStart = 0, samplesInReservoir = 0;
+    Range<int64> bufferedRange;
     bool ok = false, scanningForLength = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FlacReader)
@@ -389,7 +386,7 @@ private:
 
 
 //==============================================================================
-class FlacWriter  : public AudioFormatWriter
+class FlacWriter final : public AudioFormatWriter
 {
 public:
     FlacWriter (OutputStream* out, double rate, uint32 numChans, uint32 bits, int qualityOptionIndex)
@@ -500,8 +497,7 @@ public:
         packUint32 ((FLAC__uint32) info.total_samples, buffer + 14, 4);
         memcpy (buffer + 18, info.md5sum, 16);
 
-        const bool seekOk = output->setPosition (streamStartPos + 4);
-        ignoreUnused (seekOk);
+        [[maybe_unused]] const bool seekOk = output->setPosition (streamStartPos + 4);
 
         // if this fails, you've given it an output stream that can't seek! It needs
         // to be able to seek back to write the header

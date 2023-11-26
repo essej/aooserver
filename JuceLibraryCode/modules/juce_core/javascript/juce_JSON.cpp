@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -126,6 +126,8 @@ struct JSONParser
 
                         break;
                     }
+
+                    default:  break;
                 }
             }
 
@@ -429,7 +431,7 @@ struct JSONFormatter
                 if (! allOnOneLine)
                     writeSpaces (out, indentLevel + indentSize);
 
-                write (out, array.getReference(i), indentLevel + indentSize, allOnOneLine, maximumDecimalPlaces);
+                write (out, array.getReference (i), indentLevel + indentSize, allOnOneLine, maximumDecimalPlaces);
 
                 if (i < array.size() - 1)
                 {
@@ -543,7 +545,7 @@ Result JSON::parseQuotedString (String::CharPointerType& t, var& result)
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class JSONTests  : public UnitTest
+class JSONTests final : public UnitTest
 {
 public:
     JSONTests()

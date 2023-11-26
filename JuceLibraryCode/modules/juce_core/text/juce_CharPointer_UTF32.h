@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -186,7 +186,7 @@ public:
     /** Returns the number of bytes that would be needed to represent the given
         unicode character in this encoding format.
     */
-    static inline size_t getBytesRequiredFor (juce_wchar) noexcept
+    static size_t getBytesRequiredFor (juce_wchar) noexcept
     {
         return sizeof (CharType);
     }
@@ -334,12 +334,17 @@ public:
     int getIntValue32() const noexcept          { return CharacterFunctions::getIntValue <int, CharPointer_UTF32> (*this); }
     /** Parses this string as a 64-bit integer. */
     int64 getIntValue64() const noexcept        { return CharacterFunctions::getIntValue <int64, CharPointer_UTF32> (*this); }
+    /** Parses this string as a 64-bit integer. */
+    uint64 getUIntValue64() const noexcept        { return CharacterFunctions::getIntValue <uint64, CharPointer_UTF32> (*this); }
 
     /** Parses this string as a floating point double. */
     double getDoubleValue() const noexcept      { return CharacterFunctions::getDoubleValue (*this); }
 
     /** Returns the first non-whitespace character in the string. */
     CharPointer_UTF32 findEndOfWhitespace() const noexcept   { return CharacterFunctions::findEndOfWhitespace (*this); }
+
+    /** Move this pointer to the first non-whitespace character in the string. */
+    void incrementToEndOfWhitespace() noexcept               { CharacterFunctions::incrementToEndOfWhitespace (*this); }
 
     /** Returns true if the given unicode character can be represented in this encoding. */
     static bool canRepresent (juce_wchar character) noexcept

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -83,7 +83,7 @@ bool SubregionStream::isExhausted()
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-struct SubregionInputStreamTests   : public UnitTest
+struct SubregionInputStreamTests final : public UnitTest
 {
     SubregionInputStreamTests()
         : UnitTest ("SubregionInputStream", UnitTestCategories::streams)

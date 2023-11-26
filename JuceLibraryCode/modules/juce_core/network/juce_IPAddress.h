@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -29,6 +29,8 @@ namespace juce
 
     @tags{Core}
 */
+
+
 class JUCE_API  IPAddress  final
 {
 public:
@@ -49,6 +51,16 @@ public:
     /** Populates a list of all the IP addresses that this machine is using. */
     static Array<IPAddress> getAllAddresses (bool includeIPv6 = false);
 
+   
+    typedef  std::pair<IPAddress,String> IPAddressInterfaceNamePair;
+    
+    /** Populates a list of all the IP addresses corresponding interface names that this machine is using. */
+    static void findAllInterfaceAddresses (Array<IPAddressInterfaceNamePair>& results, bool includeIPv6 = false);
+
+    /** Populates a list of all the IP addresses and the corresponding interface names that this machine is using. */
+    static Array<IPAddressInterfaceNamePair> getAllInterfaceAddresses (bool includeIPv6 = false);
+
+    
     /** Returns the first 'real' address for the local machine.
         Unlike local(), this will attempt to find the machine's actual assigned
         address rather than "127.0.0.1". If there are multiple network cards, this

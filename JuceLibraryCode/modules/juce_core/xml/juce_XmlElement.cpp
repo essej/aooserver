@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -23,7 +23,7 @@
 namespace juce
 {
 
-inline static bool isValidXmlNameStartCharacter (juce_wchar character) noexcept
+static bool isValidXmlNameStartCharacter (juce_wchar character) noexcept
 {
     return character == ':'
         || character == '_'
@@ -43,7 +43,7 @@ inline static bool isValidXmlNameStartCharacter (juce_wchar character) noexcept
         || (character >= 0x10000 && character <= 0xeffff);
 }
 
-inline static bool isValidXmlNameBodyCharacter (juce_wchar character) noexcept
+static bool isValidXmlNameBodyCharacter (juce_wchar character) noexcept
 {
     return isValidXmlNameStartCharacter (character)
         || character == '-'
@@ -237,7 +237,7 @@ namespace XmlOutputFunctions
                             outputStream << (char) character;
                             break;
                         }
-                        // Note: Deliberate fall-through here!
+                        JUCE_FALLTHROUGH
                     default:
                         outputStream << "&#" << ((int) character) << ';';
                         break;
@@ -576,6 +576,16 @@ int XmlElement::getIntAttribute (StringRef attributeName, const int defaultRetur
     return defaultReturnValue;
 }
 
+uint64 XmlElement::getUInt64Attribute (StringRef attributeName, const uint64 defaultReturnValue) const
+{
+    if (auto* att = getAttribute (attributeName))
+        return att->value.getUnsignedLargeIntValue();
+
+    return defaultReturnValue;
+}
+
+
+
 double XmlElement::getDoubleAttribute (StringRef attributeName, const double defaultReturnValue) const
 {
     if (auto* att = getAttribute (attributeName))
@@ -638,6 +648,11 @@ void XmlElement::setAttribute (const Identifier& attributeName, const String& va
 }
 
 void XmlElement::setAttribute (const Identifier& attributeName, const int number)
+{
+    setAttribute (attributeName, String (number));
+}
+
+void XmlElement::setAttribute (const Identifier& attributeName, const uint64 number)
 {
     setAttribute (attributeName, String (number));
 }
@@ -993,7 +1008,7 @@ void XmlElement::deleteAllTextElements() noexcept
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class XmlElementTests  : public UnitTest
+class XmlElementTests final : public UnitTest
 {
 public:
     XmlElementTests()

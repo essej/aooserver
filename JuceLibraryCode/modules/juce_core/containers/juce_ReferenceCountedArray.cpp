@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2018 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -25,7 +25,7 @@ namespace juce
 
 #if JUCE_UNIT_TESTS
 
-class ReferenceCountedArrayTests   : public UnitTest
+class ReferenceCountedArrayTests final : public UnitTest
 {
 public:
     ReferenceCountedArrayTests()
@@ -134,7 +134,7 @@ private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestBaseObj)
     };
 
-    struct TestDerivedObj : public TestBaseObj
+    struct TestDerivedObj final : public TestBaseObj
     {
         using Ptr = ReferenceCountedObjectPtr<TestDerivedObj>;
 
@@ -143,7 +143,7 @@ private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestDerivedObj)
     };
 
-    struct DestructorObj : public ReferenceCountedObject
+    struct DestructorObj final : public ReferenceCountedObject
     {
         DestructorObj (ReferenceCountedArrayTests& p,
                        ReferenceCountedArray<DestructorObj>& arr)
@@ -158,7 +158,9 @@ private:
             {
                 parent.expect (o != nullptr);
                 parent.expect (o != this);
-                parent.expectEquals (o->data, 374);
+
+                if (o != nullptr)
+                    parent.expectEquals (o->data, 374);
             }
         }
 

@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -116,9 +116,6 @@ public:
     */
     bool wasObjectDeleted() const noexcept                      { return holder != nullptr && holder->get() == nullptr; }
 
-    bool operator== (ObjectType* object) const noexcept         { return get() == object; }
-    bool operator!= (ObjectType* object) const noexcept         { return get() != object; }
-
     //==============================================================================
     /** This class is used internally by the WeakReference class - don't use it directly
         in your code!
@@ -201,7 +198,7 @@ public:
 private:
     SharedRef holder;
 
-    static inline SharedRef getRef (ObjectType* o)
+    static SharedRef getRef (ObjectType* o)
     {
         if (o != nullptr)
             return o->masterReference.getSharedPointer (o);

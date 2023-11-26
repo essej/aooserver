@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -183,6 +183,14 @@ public:
     */
     virtual void resumed() = 0;
 
+    /** This method is called when the application (generally on android) is started
+    */
+    virtual void started() {}
+
+    /** This method is called when the application (generally on android) is stopped
+    */
+    virtual void stopped() {}
+    
     /** If any unhandled exceptions make it through to the message dispatch loop, this
         callback will be triggered, in case you want to log them or do some other
         type of error-handling.
@@ -204,6 +212,13 @@ public:
         At the moment this method is only called on iOS.
     */
     virtual void memoryWarningReceived()     { jassertfalse; }
+
+    /** Called by the operating system when a custom file type was opened. You are expected
+     * to return true if you handled the URL.
+
+        At the moment this method is only called on iOS.
+    */
+    virtual void urlOpened(const URL& url)     { }
 
     //==============================================================================
     /** This will be called when the back button on a device is pressed. The return value
@@ -309,7 +324,7 @@ private:
 
 
 //==============================================================================
-#if JUCE_CATCH_UNHANDLED_EXCEPTIONS || defined (DOXYGEN)
+#if JUCE_CATCH_UNHANDLED_EXCEPTIONS || DOXYGEN
 
  /** The JUCE_TRY/JUCE_CATCH_EXCEPTION wrappers can be used to pass any uncaught exceptions to
      the JUCEApplicationBase::sendUnhandledException() method.

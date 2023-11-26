@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -19,6 +19,20 @@
 
   ==============================================================================
 */
+
+#if ! defined (DOXYGEN) && (JUCE_MAC || JUCE_IOS)
+ // Annoyingly we can only forward-declare a typedef by forward-declaring the
+ // aliased type
+ #if __has_attribute(objc_bridge)
+  #define JUCE_CF_BRIDGED_TYPE(T) __attribute__ ((objc_bridge (T)))
+ #else
+  #define JUCE_CF_BRIDGED_TYPE(T)
+ #endif
+
+ typedef const struct JUCE_CF_BRIDGED_TYPE(NSString) __CFString * CFStringRef;
+
+ #undef JUCE_CF_BRIDGED_TYPE
+#endif
 
 namespace juce
 {
@@ -293,13 +307,13 @@ public:
         Note that there's also an isNotEmpty() method to help write readable code.
         @see containsNonWhitespaceChars()
     */
-    inline bool isEmpty() const noexcept                    { return text.isEmpty(); }
+    bool isEmpty() const noexcept                           { return text.isEmpty(); }
 
     /** Returns true if the string contains at least one character.
         Note that there's also an isEmpty() method to help write readable code.
         @see containsNonWhitespaceChars()
     */
-    inline bool isNotEmpty() const noexcept                 { return ! text.isEmpty(); }
+    bool isNotEmpty() const noexcept                        { return ! text.isEmpty(); }
 
     /** Resets this string to be empty. */
     void clear() noexcept;
@@ -905,6 +919,35 @@ public:
     template <typename... Args>
     static String formatted (const String& formatStr, Args... args)      { return formattedRaw (formatStr.toRawUTF8(), args...); }
 
+    /** Returns an iterator pointing at the beginning of the string. */
+    CharPointerType begin() const                                        { return getCharPointer(); }
+
+    /** Returns an iterator pointing at the terminating null of the string.
+
+        Note that this has to find the terminating null before returning it, so prefer to
+        call this once before looping and then reuse the result, rather than calling 'end()'
+        each time through the loop.
+
+        @code
+        String str = ...;
+
+        // BEST
+        for (auto c : str)
+            DBG (c);
+
+        // GOOD
+        for (auto ptr = str.begin(), end = str.end(); ptr != end; ++ptr)
+            DBG (*ptr);
+
+        std::for_each (str.begin(), str.end(), [] (juce_wchar c) { DBG (c); });
+
+        // BAD
+        for (auto ptr = str.begin(); ptr != str.end(); ++ptr)
+            DBG (*ptr);
+        @endcode
+    */
+    CharPointerType end() const                                          { return begin().findTerminatingNull(); }
+
     //==============================================================================
     // Numeric conversions..
 
@@ -1001,12 +1044,18 @@ public:
     */
     int64 getLargeIntValue() const noexcept;
 
+    /** Reads the value of the string as a decimal number (up to 64 bits in size).
+        @returns the value of the string as a 64 bit signed base-10 unsigned integer.
+    */
+    uint64 getUnsignedLargeIntValue() const noexcept;
+
     /** Parses a decimal number from the end of the string.
 
         This will look for a value at the end of the string.
         e.g. for "321 xyz654" it will return 654; for "2 3 4" it'll return 4.
 
-        Negative numbers are not handled, so "xyz-5" returns 5.
+        If the string ends with a hyphen followed by numeric characters, the
+        return value will be negative.
 
         @see getIntValue
     */
@@ -1073,7 +1122,7 @@ public:
     {
         jassert (numberOfSignificantFigures > 0);
 
-        if (number == 0)
+        if (exactlyEqual (number, DecimalType()))
         {
             if (numberOfSignificantFigures > 1)
             {
@@ -1090,94 +1139,6 @@ public:
 
         auto numDigitsBeforePoint = (int) std::ceil (std::log10 (number < 0 ? -number : number));
 
-       #if JUCE_PROJUCER_LIVE_BUILD
-        auto doubleNumber = (double) number;
-        constexpr int bufferSize = 311;
-        char buffer[bufferSize];
-        auto* ptr = &(buffer[0]);
-        auto* const safeEnd = ptr + (bufferSize - 1);
-        auto numSigFigsParsed = 0;
-
-        auto writeToBuffer = [safeEnd] (char* destination, char data)
-        {
-            *destination++ = data;
-
-            if (destination == safeEnd)
-            {
-                *destination = '\0';
-                return true;
-            }
-
-            return false;
-        };
-
-        auto truncateOrRound = [numberOfSignificantFigures] (double fractional, int sigFigsParsed)
-        {
-            return (sigFigsParsed == numberOfSignificantFigures - 1) ? (int) std::round (fractional)
-                                                                     : (int) fractional;
-        };
-
-        if (doubleNumber < 0)
-        {
-            doubleNumber *= -1;
-            *ptr++ = '-';
-        }
-
-        if (numDigitsBeforePoint > 0)
-        {
-            doubleNumber /= std::pow (10.0, numDigitsBeforePoint);
-
-            while (numDigitsBeforePoint-- > 0)
-            {
-                if (numSigFigsParsed == numberOfSignificantFigures)
-                {
-                    if (writeToBuffer (ptr++, '0'))
-                        return buffer;
-
-                    continue;
-                }
-
-                doubleNumber *= 10;
-                auto digit = truncateOrRound (doubleNumber, numSigFigsParsed);
-
-                if (writeToBuffer (ptr++, (char) ('0' + digit)))
-                    return buffer;
-
-                ++numSigFigsParsed;
-                doubleNumber -= digit;
-            }
-
-            if (numSigFigsParsed == numberOfSignificantFigures)
-            {
-                *ptr++ = '\0';
-                return buffer;
-            }
-        }
-        else
-        {
-            *ptr++ = '0';
-        }
-
-        if (writeToBuffer (ptr++, '.'))
-            return buffer;
-
-        while (numSigFigsParsed < numberOfSignificantFigures)
-        {
-            doubleNumber *= 10;
-            auto digit = truncateOrRound (doubleNumber, numSigFigsParsed);
-
-            if (writeToBuffer (ptr++, (char) ('0' + digit)))
-                return buffer;
-
-            if (numSigFigsParsed != 0 || digit != 0)
-                ++numSigFigsParsed;
-
-            doubleNumber -= digit;
-        }
-
-        *ptr++ = '\0';
-        return buffer;
-       #else
         auto shift = numberOfSignificantFigures - numDigitsBeforePoint;
         auto factor = std::pow (10.0, shift);
         auto rounded = std::round (number * factor) / factor;
@@ -1185,7 +1146,6 @@ public:
         std::stringstream ss;
         ss << std::fixed << std::setprecision (std::max (shift, 0)) << rounded;
         return ss.str();
-       #endif
     }
 
     //==============================================================================
@@ -1195,7 +1155,7 @@ public:
         that is returned must not be stored anywhere, as it can be deleted whenever the
         string changes.
     */
-    inline CharPointerType getCharPointer() const noexcept      { return text; }
+    CharPointerType getCharPointer() const noexcept             { return text; }
 
     /** Returns a pointer to a UTF-8 version of this string.
 
@@ -1371,15 +1331,13 @@ public:
     int getReferenceCount() const noexcept;
 
     //==============================================================================
-    /*  This was a static empty string object, but is now deprecated as it's too easy to accidentally
-        use it indirectly during a static constructor, leading to hard-to-find order-of-initialisation
-        problems.
-        @deprecated If you need an empty String object, just use String() or {}.
-        The only time you might miss having String::empty available might be if you need to return an
-        empty string from a function by reference, but if you need to do that, it's easy enough to use
-        a function-local static String object and return that, avoiding any order-of-initialisation issues.
-    */
-    JUCE_DEPRECATED_STATIC (static const String empty;)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+    [[deprecated ("This was a static empty string object, but is now deprecated as it's too easy to accidentally "
+                 "use it indirectly during a static constructor, leading to hard-to-find order-of-initialisation "
+                 "problems. If you need an empty String object, just use String() or {}. For returning an empty "
+                 "String from a function by reference, use a function-local static String object and return that.")]]
+    static const String empty;
+   #endif
 
 private:
     //==============================================================================
@@ -1394,7 +1352,6 @@ private:
 
     explicit String (const PreallocationBytes&); // This constructor preallocates a certain amount of memory
     size_t getByteOffsetOfEnd() const noexcept;
-    JUCE_DEPRECATED (String (const String&, size_t));
 
     // This private cast operator should prevent strings being accidentally cast
     // to bools (this is possible because the compiler can add an implicit cast
@@ -1544,7 +1501,7 @@ JUCE_API OutputStream& JUCE_CALLTYPE operator<< (OutputStream& stream, StringRef
 
 } // namespace juce
 
-#if ! DOXYGEN
+#ifndef DOXYGEN
 namespace std
 {
     template <> struct hash<juce::String>

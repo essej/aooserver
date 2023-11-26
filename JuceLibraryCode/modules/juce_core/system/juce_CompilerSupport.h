@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -30,16 +30,8 @@
 // GCC
 #if JUCE_GCC
 
- #if (__GNUC__ * 100 + __GNUC_MINOR__) < 407
-  #error "JUCE requires GCC 4.7 or later"
- #endif
-
- #if ! (__cplusplus >= 201103L || defined (__GXX_EXPERIMENTAL_CXX0X__))
-  #error "JUCE requires that GCC has C++11 compatibility enabled"
- #endif
-
- #if (__GNUC__ * 100 + __GNUC_MINOR__) >= 500
-  #define JUCE_HAS_CONSTEXPR 1
+ #if (__GNUC__ * 100 + __GNUC_MINOR__) < 700
+  #error "JUCE requires GCC 7.0 or later"
  #endif
 
  #ifndef JUCE_EXCEPTIONS_DISABLED
@@ -48,7 +40,7 @@
   #endif
  #endif
 
- #define JUCE_CXX14_IS_AVAILABLE ((__cplusplus >= 201402L) || ((__GNUC__ * 100 + __GNUC_MINOR__) >= 409 && (__cplusplus >= 201300L)))
+ #define JUCE_CXX14_IS_AVAILABLE (__cplusplus >= 201402L)
  #define JUCE_CXX17_IS_AVAILABLE (__cplusplus >= 201703L)
 
 #endif
@@ -57,11 +49,9 @@
 // Clang
 #if JUCE_CLANG
 
- #if (__clang_major__ < 3) || (__clang_major__ == 3 && __clang_minor__ < 3)
-  #error "JUCE requires Clang 3.3 or later"
+ #if (__clang_major__ < 6)
+  #error "JUCE requires Clang 6 or later"
  #endif
-
- #define JUCE_HAS_CONSTEXPR 1
 
  #ifndef JUCE_COMPILER_SUPPORTS_ARC
   #define JUCE_COMPILER_SUPPORTS_ARC 1
@@ -70,6 +60,39 @@
  #ifndef JUCE_EXCEPTIONS_DISABLED
   #if ! __has_feature (cxx_exceptions)
    #define JUCE_EXCEPTIONS_DISABLED 1
+  #endif
+ #endif
+
+ #if ! defined (JUCE_SILENCE_XCODE_15_LINKER_WARNING)                          \
+     && defined (__apple_build_version__)                                      \
+     && __clang_major__ == 15                                                  \
+     && __clang_minor__ == 0
+  // This is a warning because builds may be usable when LTO is disabled
+  #pragma GCC warning "If you are using Link Time Optimisation (LTO), the "    \
+      "new linker introduced in Xcode 15 may produce a broken binary.\n"       \
+      "As a workaround, add either '-Wl,-weak_reference_mismatches,weak' or "  \
+      "'-Wl,-ld_classic' to your linker flags.\n"                              \
+      "Once you've selected a workaround, you can add "                        \
+      "JUCE_SILENCE_XCODE_15_LINKER_WARNING to your preprocessor definitions " \
+      "to silence this warning."
+
+  #if ((defined (MAC_OS_X_VERSION_MIN_REQUIRED)                                \
+        && MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_13_0)                \
+       || (defined (__IPHONE_OS_VERSION_MIN_REQUIRED)                          \
+           && __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_15_0))
+   // This is an error because the linker _will_ produce a binary that is
+   // broken on older platforms
+   static_assert (std::string_view (__clang_version__)
+                      != std::string_view ("15.0.0 (clang-1500.0.40.1)"),
+                  "The new linker introduced in Xcode 15.0 will produce "
+                  "broken binaries when targeting older platforms.\n"
+                  "To work around this issue, bump your deployment target to "
+                  "macOS 13 or iOS 15, re-enable the old linker by adding "
+                  "'-Wl,-ld_classic' to your link flags, or update to Xcode "
+                  "15.1.\n"
+                  "Once you've selected a workaround, you can add "
+                  "JUCE_SILENCE_XCODE_15_LINKER_WARNING to your preprocessor "
+                  "definitions to silence this warning.");
   #endif
  #endif
 
@@ -82,11 +105,9 @@
 // MSVC
 #if JUCE_MSVC
 
- #if _MSC_VER < 1900 // VS2015
-   #error "JUCE requires Visual Studio 2015 or later"
+ #if _MSC_FULL_VER < 191025017  // VS2017
+   #error "JUCE requires Visual Studio 2017 or later"
  #endif
-
- #define JUCE_HAS_CONSTEXPR 1
 
  #ifndef JUCE_EXCEPTIONS_DISABLED
   #if ! _CPPUNWIND
@@ -99,34 +120,18 @@
 #endif
 
 //==============================================================================
-// C++ library
-#if (defined (__GLIBCXX__) && __GLIBCXX__ < 20130322) || (defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 3700))
- #error "JUCE requires a C++ library containing std::atomic"
+#if ! JUCE_CXX17_IS_AVAILABLE
+ #error "JUCE requires C++17 or later"
 #endif
 
 //==============================================================================
-#if JUCE_HAS_CONSTEXPR
- #define JUCE_CONSTEXPR constexpr
-#else
- #define JUCE_CONSTEXPR
-#endif
-
-#if (! JUCE_MSVC) && (! JUCE_CXX14_IS_AVAILABLE)
-namespace std
-{
-    template<typename T, typename... Args>
-    unique_ptr<T> make_unique (Args&&... args)
-    {
-        return unique_ptr<T> (new T (std::forward<Args> (args)...));
-    }
-}
-#endif
-
-#if ! DOXYGEN
+#ifndef DOXYGEN
  // These are old flags that are now supported on all compatible build targets
  #define JUCE_COMPILER_SUPPORTS_OVERRIDE_AND_FINAL 1
  #define JUCE_COMPILER_SUPPORTS_VARIADIC_TEMPLATES 1
  #define JUCE_COMPILER_SUPPORTS_INITIALIZER_LISTS 1
  #define JUCE_COMPILER_SUPPORTS_NOEXCEPT 1
  #define JUCE_DELETED_FUNCTION = delete
+ #define JUCE_CONSTEXPR constexpr
+ #define JUCE_NODISCARD [[nodiscard]]
 #endif

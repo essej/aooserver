@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -71,6 +70,8 @@ namespace juce
 */
 class JUCE_API  ValueTree  final
 {
+    JUCE_PUBLIC_IN_DLL_BUILD (class SharedObject)
+
 public:
     //==============================================================================
     /** Creates an empty, invalid ValueTree.
@@ -414,7 +415,7 @@ public:
         using iterator_category  = std::forward_iterator_tag;
 
     private:
-        void* internal;
+        SharedObject** internal = nullptr;
     };
 
     /** Returns a start iterator for the children in this tree. */
@@ -427,7 +428,6 @@ public:
     /** Creates an XmlElement that holds a complete image of this tree and all its children.
         If this tree is invalid, this may return nullptr. Otherwise, the XML that is produced can
         be used to recreate a similar tree by calling ValueTree::fromXml().
-        The caller must delete the object that is returned.
         @see fromXml, toXmlString
     */
     std::unique_ptr<XmlElement> createXml() const;
@@ -608,14 +608,14 @@ public:
     */
     int getReferenceCount() const noexcept;
 
-    /* An invalid ValueTree that can be used if you need to return one as an error condition, etc.
-        @deprecated If you need an empty ValueTree object, just use ValueTree() or {}.
-    */
-    JUCE_DEPRECATED_STATIC (static const ValueTree invalid;)
+   #if JUCE_ALLOW_STATIC_NULL_VARIABLES && ! defined (DOXYGEN)
+    /* An invalid ValueTree that can be used if you need to return one as an error condition, etc. */
+    [[deprecated ("If you need an empty ValueTree object, just use ValueTree() or {}.")]]
+    static const ValueTree invalid;
+   #endif
 
 private:
     //==============================================================================
-    JUCE_PUBLIC_IN_DLL_BUILD (class SharedObject)
     friend class SharedObject;
 
     ReferenceCountedObjectPtr<SharedObject> object;

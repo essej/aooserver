@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -27,8 +27,6 @@ AbstractFifo::AbstractFifo (int capacity) noexcept : bufferSize (capacity)
 {
     jassert (bufferSize > 0);
 }
-
-AbstractFifo::~AbstractFifo() {}
 
 int AbstractFifo::getTotalSize() const noexcept    { return bufferSize; }
 int AbstractFifo::getFreeSpace() const noexcept    { return bufferSize - getNumReady() - 1; }
@@ -170,14 +168,14 @@ AbstractFifo::ScopedWrite AbstractFifo::write (int numToWrite) noexcept    { ret
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class AbstractFifoTests  : public UnitTest
+class AbstractFifoTests final : public UnitTest
 {
 public:
     AbstractFifoTests()
         : UnitTest ("Abstract Fifo", UnitTestCategories::containers)
     {}
 
-    struct WriteThread  : public Thread
+    struct WriteThread final : public Thread
     {
         WriteThread (AbstractFifo& f, int* b, Random rng)
             : Thread ("fifo writer"), fifo (f), buffer (b), random (rng)
@@ -214,6 +212,8 @@ public:
         int* buffer;
         Random random;
     };
+
+    JUCE_BEGIN_IGNORE_WARNINGS_MSVC (6262)
 
     void runTest() override
     {
@@ -258,6 +258,8 @@ public:
             }
         }
     }
+
+    JUCE_END_IGNORE_WARNINGS_MSVC
 };
 
 static AbstractFifoTests fifoUnitTests;

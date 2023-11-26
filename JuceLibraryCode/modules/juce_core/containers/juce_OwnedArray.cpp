@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -35,7 +35,7 @@ static struct OwnedArrayTest : public UnitTest
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Base)
     };
 
-    struct Derived : Base
+    struct Derived final : public Base
     {
         Derived() = default;
 
@@ -57,7 +57,9 @@ static struct OwnedArrayTest : public UnitTest
             {
                 parent.expect (o != nullptr);
                 parent.expect (o != this);
-                parent.expectEquals (o->data, 956);
+
+                if (o != nullptr)
+                    parent.expectEquals (o->data, 956);
             }
         }
 

@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -29,18 +28,19 @@
  The block below describes the properties of this module, and is read by
  the Projucer to automatically generate project code that uses it.
  For details about the syntax and how to create or use a module, see the
- JUCE Module Format.txt file.
+ JUCE Module Format.md file.
 
 
  BEGIN_JUCE_MODULE_DECLARATION
 
   ID:                 juce_audio_formats
   vendor:             juce
-  version:            5.4.7
+  version:            7.0.8
   name:               JUCE audio file format codecs
   description:        Classes for reading and writing various audio file formats.
   website:            http://www.juce.com/juce
   license:            GPL/Commercial
+  minimumCppStandard: 17
 
   dependencies:       juce_audio_basics
   OSXFrameworks:      CoreAudio CoreMIDI QuartzCore AudioToolbox
@@ -79,8 +79,8 @@
     Enables the software-based MP3AudioFormat class.
     IMPORTANT DISCLAIMER: By choosing to enable the JUCE_USE_MP3AUDIOFORMAT flag and to compile
     this MP3 code into your software, you do so AT YOUR OWN RISK! By doing so, you are agreeing
-    that ROLI Ltd. is in no way responsible for any patent, copyright, or other legal issues
-    that you may suffer as a result.
+    that Raw Material Software Limited is in no way responsible for any patent, copyright, or other
+    legal issues that you may suffer as a result.
 
     The code in juce_MP3AudioFormat.cpp is NOT guaranteed to be free from infringements of 3rd-party
     intellectual property. If you wish to use it, please seek your own independent advice about the
@@ -105,7 +105,7 @@
  #define JUCE_USE_WINDOWS_MEDIA_FORMAT 1
 #endif
 
-#if ! JUCE_MSVC
+#if ! JUCE_WINDOWS || JUCE_MINGW
  #undef JUCE_USE_WINDOWS_MEDIA_FORMAT
  #define JUCE_USE_WINDOWS_MEDIA_FORMAT 0
 #endif
@@ -128,3 +128,9 @@
 #include "codecs/juce_WavAudioFormat.h"
 #include "codecs/juce_WindowsMediaAudioFormat.h"
 #include "sampler/juce_Sampler.h"
+
+#if JucePlugin_Enable_ARA
+ #include <juce_audio_processors/juce_audio_processors.h>
+
+ #include "format/juce_ARAAudioReaders.h"
+#endif

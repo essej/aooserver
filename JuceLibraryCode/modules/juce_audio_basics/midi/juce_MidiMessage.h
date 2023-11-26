@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -102,7 +102,8 @@ public:
                  double timeStamp = 0,
                  bool sysexHasEmbeddedLength = true);
 
-    /** Creates an active-sense message.
+    /** Creates an empty sysex message.
+
         Since the MidiMessage has to contain a valid message, this default constructor
         just initialises it with an empty sysex message.
     */
@@ -216,6 +217,13 @@ public:
         @see getSysExData
     */
     int getSysExDataSize() const noexcept;
+
+    /** Returns a span that bounds the sysex body bytes contained in this message. */
+    Span<const std::byte> getSysExDataSpan() const noexcept
+    {
+        return { reinterpret_cast<const std::byte*> (getSysExData()),
+                 (size_t) getSysExDataSize() };
+    }
 
     //==============================================================================
     /** Returns true if this message is a 'key-down' event.
@@ -401,7 +409,7 @@ public:
     /** Returns true if the message is an aftertouch event.
 
         For aftertouch events, use the getNoteNumber() method to find out the key
-        that it applies to, and getAftertouchValue() to find out the amount. Use
+        that it applies to, and getAfterTouchValue() to find out the amount. Use
         getChannel() to find out the channel.
 
         @see getAftertouchValue, getNoteNumber
@@ -854,15 +862,52 @@ public:
     static MidiMessage createSysExMessage (const void* sysexData,
                                            int dataSize);
 
+    /** Creates a system-exclusive message.
+        The data passed in is wrapped with header and tail bytes of 0xf0 and 0xf7.
+    */
+    static MidiMessage createSysExMessage (Span<const std::byte> data);
 
     //==============================================================================
+   #ifndef DOXYGEN
     /** Reads a midi variable-length integer.
 
-        @param data             the data to read the number from
-        @param numBytesUsed     on return, this will be set to the number of bytes that were read
+        The `data` argument indicates the data to read the number from,
+        and `numBytesUsed` is used as an out-parameter to indicate the number
+        of bytes that were read.
     */
-    static int readVariableLengthVal (const uint8* data,
-                                      int& numBytesUsed) noexcept;
+    [[deprecated ("This signature has been deprecated in favour of the safer readVariableLengthValue.")]]
+    static int readVariableLengthVal (const uint8* data, int& numBytesUsed) noexcept;
+   #endif
+
+    /** Holds information about a variable-length value which was parsed
+        from a stream of bytes.
+
+        A valid value requires that `bytesUsed` is greater than 0.
+    */
+    struct VariableLengthValue
+    {
+        VariableLengthValue() = default;
+
+        VariableLengthValue (int valueIn, int bytesUsedIn)
+            : value (valueIn), bytesUsed (bytesUsedIn) {}
+
+        bool isValid() const noexcept  { return bytesUsed > 0; }
+
+        int value = 0;
+        int bytesUsed = 0;
+    };
+
+    /** Reads a midi variable-length integer, with protection against buffer overflow.
+
+        @param data             the data to read the number from
+        @param maxBytesToUse    the number of bytes in the region following `data`
+        @returns                a struct containing the parsed value, and the number
+                                of bytes that were read. If parsing fails, both the
+                                `value` and `bytesUsed` fields will be set to 0 and
+                                `isValid()` will return false
+    */
+    static VariableLengthValue readVariableLengthValue (const uint8* data,
+                                                        int maxBytesToUse) noexcept;
 
     /** Based on the first byte of a short midi message, this uses a lookup table
         to return the message length (either 1, 2, or 3 bytes).

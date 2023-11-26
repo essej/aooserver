@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -161,7 +161,7 @@ public:
         {
             for (int i = ranges.size(); --i >= 0;)
             {
-                auto& r = ranges.getReference(i);
+                auto& r = ranges.getReference (i);
 
                 if (r.getEnd() <= rangeToRemove.getStart())
                     break;

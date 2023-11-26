@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -91,28 +91,43 @@ public:
     /** Implements the PositionableAudioSource method. */
     bool isLooping() const override             { return source->isLooping(); }
 
+    /** Implements the PositionableAudioSource method. */
+    void setLooping(bool shouldLoop) override             { return source->setLooping(shouldLoop); }
+
+    /** Implements the PositionableAudioSource method. */
+    void setLoopRange (int64 loopStart, int64 loopLength) override;
+    
+    /** Implements the PositionableAudioSource method. */
+    void getLoopRange (int64 & loopStart, int64 & loopLength) const override { return source->getLoopRange(loopStart, loopLength); }
+
     /** A useful function to block until the next the buffer info can be filled.
 
         This is useful for offline rendering.
     */
-    bool waitForNextAudioBlockReady (const AudioSourceChannelInfo& info, const uint32 timeout);
+    bool waitForNextAudioBlockReady (const AudioSourceChannelInfo& info, uint32 timeout);
 
 private:
+    //==============================================================================
+    Range<int> getValidBufferRange (int numSamples) const;
+    bool readNextBufferChunk();
+    void readBufferSection (int64 start, int length, int bufferOffset);
+    int useTimeSlice() override;
+
     //==============================================================================
     OptionalScopedPointer<PositionableAudioSource> source;
     TimeSliceThread& backgroundThread;
     int numberOfSamplesToBuffer, numberOfChannels;
     AudioBuffer<float> buffer;
-    CriticalSection bufferStartPosLock;
+    CriticalSection callbackLock, bufferRangeLock;
     WaitableEvent bufferReadyEvent;
-    std::atomic<int64> bufferValidStart { 0 }, bufferValidEnd { 0 }, nextPlayPos { 0 };
+    int64 bufferValidStart = 0, bufferValidEnd = 0;
+    std::atomic<int64> nextPlayPos { 0 };
     double sampleRate = 0;
-    bool wasSourceLooping = false, isPrepared = false, prefillBuffer;
+    bool wasSourceLooping = false, isPrepared = false;
+    bool loopRangeChanged = false;
+    const bool prefillBuffer;
 
-    bool readNextBufferChunk();
-    void readBufferSection (int64 start, int length, int bufferOffset);
-    int useTimeSlice() override;
-
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BufferingAudioSource)
 };
 

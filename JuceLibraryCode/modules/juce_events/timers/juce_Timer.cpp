@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -23,9 +23,9 @@
 namespace juce
 {
 
-class Timer::TimerThread  : private Thread,
-                            private DeletedAtShutdown,
-                            private AsyncUpdater
+class Timer::TimerThread final : private Thread,
+                                 private DeletedAtShutdown,
+                                 private AsyncUpdater
 {
 public:
     using LockType = CriticalSection; // (mysteriously, using a SpinLock here causes problems on some XP machines..)
@@ -38,6 +38,7 @@ public:
 
     ~TimerThread() override
     {
+        cancelPendingUpdate();
         signalThreadShouldExit();
         callbackArrived.signal();
         stopThread (4000);
@@ -136,7 +137,7 @@ public:
         callTimers();
     }
 
-    static inline void add (Timer* tim) noexcept
+    static void add (Timer* tim) noexcept
     {
         if (instance == nullptr)
             instance = new TimerThread();
@@ -144,13 +145,13 @@ public:
         instance->addTimer (tim);
     }
 
-    static inline void remove (Timer* tim) noexcept
+    static void remove (Timer* tim) noexcept
     {
         if (instance != nullptr)
             instance->removeTimer (tim);
     }
 
-    static inline void resetCounter (Timer* tim) noexcept
+    static void resetCounter (Timer* tim) noexcept
     {
         if (instance != nullptr)
             instance->resetTimerCounter (tim);
@@ -170,7 +171,7 @@ private:
 
     WaitableEvent callbackArrived;
 
-    struct CallTimersMessage  : public MessageManager::MessageBase
+    struct CallTimersMessage final : public MessageManager::MessageBase
     {
         CallTimersMessage() {}
 
@@ -186,8 +187,8 @@ private:
     {
         // Trying to add a timer that's already here - shouldn't get to this point,
         // so if you get this assertion, let me know!
-        jassert (std::find_if (timers.begin(), timers.end(),
-                               [t](TimerCountdown i) { return i.timer == t; }) == timers.end());
+        jassert (std::none_of (timers.begin(), timers.end(),
+                               [t] (TimerCountdown i) { return i.timer == t; }));
 
         auto pos = timers.size();
 
@@ -302,7 +303,7 @@ private:
 
     void handleAsyncUpdate() override
     {
-        startThread (7);
+        startThread (Priority::high);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimerThread)
@@ -317,6 +318,14 @@ Timer::Timer (const Timer&) noexcept {}
 
 Timer::~Timer()
 {
+    // If you're destroying a timer on a background thread, make sure the timer has
+    // been stopped before execution reaches this point. A simple way to achieve this
+    // is to add a call to `stopTimer()` to the destructor of your class which inherits
+    // from Timer.
+    jassert (! isTimerRunning()
+             || MessageManager::getInstanceWithoutCreating() == nullptr
+             || MessageManager::getInstanceWithoutCreating()->currentThreadHasLockedMessageManager());
+
     stopTimer();
 }
 
@@ -362,7 +371,7 @@ void JUCE_CALLTYPE Timer::callPendingTimersSynchronously()
         TimerThread::instance->callTimersSynchronously();
 }
 
-struct LambdaInvoker  : private Timer
+struct LambdaInvoker final : private Timer
 {
     LambdaInvoker (int milliseconds, std::function<void()> f)  : function (f)
     {

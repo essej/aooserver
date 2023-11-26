@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -150,7 +150,7 @@ public:
     template <class ValueType>
     void expectEquals (ValueType actual, ValueType expected, String failureMessage = String())
     {
-        bool result = actual == expected;
+        bool result = exactlyEqual (actual, expected);
         expectResultAndPrint (actual, expected, result, "", failureMessage);
     }
 
@@ -160,7 +160,7 @@ public:
     template <class ValueType>
     void expectNotEquals (ValueType value, ValueType valueToCompareTo, String failureMessage = String())
     {
-        bool result = value != valueToCompareTo;
+        bool result = ! exactlyEqual (value, valueToCompareTo);
         expectResultAndPrint (value, valueToCompareTo, result, "unequal to", failureMessage);
     }
 
@@ -376,18 +376,31 @@ public:
     */
     struct TestResult
     {
+        TestResult() = default;
+
+        explicit TestResult (const String& name, const String& subCategory)
+             : unitTestName (name),
+               subcategoryName (subCategory)
+        {
+        }
+
         /** The main name of this test (i.e. the name of the UnitTest object being run). */
         String unitTestName;
         /** The name of the current subcategory (i.e. the name that was set when UnitTest::beginTest() was called). */
         String subcategoryName;
 
         /** The number of UnitTest::expect() calls that succeeded. */
-        int passes;
+        int passes = 0;
         /** The number of UnitTest::expect() calls that failed. */
-        int failures;
+        int failures = 0;
 
         /** A list of messages describing the failed tests. */
         StringArray messages;
+
+        /** The time at which this test was started. */
+        Time startTime = Time::getCurrentTime();
+        /** The time at which this test ended. */
+        Time endTime;
     };
 
     /** Returns the number of TestResult objects that have been performed.

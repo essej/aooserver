@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -66,6 +65,12 @@ public:
     /** Returns whether loop-mode is turned on or not. */
     bool isLooping() const override                             { return looping; }
 
+    /** Sets the start position of the looping in samples. */
+    void setLoopRange (int64 loopStart, int64 loopLength) override;
+    
+    /** Returns the position where the loop playback starts.  */
+    void getLoopRange(int64 & loopStart, int64 & loopLength) const override { loopStart = loopStartPos; loopLength = loopLen; }
+
     /** Returns the reader that's being used. */
     AudioFormatReader* getAudioFormatReader() const noexcept    { return reader; }
 
@@ -95,6 +100,8 @@ private:
 
     int64 nextPlayPos;
     bool looping;
+    int64 loopStartPos;
+    int64 loopLen;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioFormatReaderSource)
 };

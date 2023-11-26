@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -28,19 +28,19 @@ WaitableEvent::WaitableEvent (bool manualReset) noexcept
 {
 }
 
-bool WaitableEvent::wait (int timeOutMilliseconds) const
+bool WaitableEvent::wait (double timeOutMilliseconds) const
 {
     std::unique_lock<std::mutex> lock (mutex);
 
     if (! triggered)
     {
-        if (timeOutMilliseconds < 0)
+        if (timeOutMilliseconds < 0.0)
         {
             condition.wait (lock, [this] { return triggered == true; });
         }
         else
         {
-            if (! condition.wait_for (lock, std::chrono::milliseconds (timeOutMilliseconds),
+            if (! condition.wait_for (lock, std::chrono::duration<double, std::milli> { timeOutMilliseconds },
                                       [this] { return triggered == true; }))
             {
                 return false;
@@ -56,7 +56,7 @@ bool WaitableEvent::wait (int timeOutMilliseconds) const
 
 void WaitableEvent::signal() const
 {
-    std::unique_lock<std::mutex> lock (mutex);
+    std::lock_guard<std::mutex> lock (mutex);
 
     triggered = true;
     condition.notify_all();

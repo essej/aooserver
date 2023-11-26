@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -23,7 +23,7 @@
 namespace juce
 {
 
-class ActionBroadcaster::ActionMessage  : public MessageManager::MessageBase
+class ActionBroadcaster::ActionMessage final : public MessageManager::MessageBase
 {
 public:
     ActionMessage (const ActionBroadcaster* ab,
@@ -86,7 +86,7 @@ void ActionBroadcaster::sendActionMessage (const String& message) const
     const ScopedLock sl (actionListenerLock);
 
     for (int i = actionListeners.size(); --i >= 0;)
-        (new ActionMessage (this, message, actionListeners.getUnchecked(i)))->post();
+        (new ActionMessage (this, message, actionListeners.getUnchecked (i)))->post();
 }
 
 } // namespace juce

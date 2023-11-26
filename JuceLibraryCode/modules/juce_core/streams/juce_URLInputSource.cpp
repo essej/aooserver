@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -39,16 +39,19 @@ URLInputSource::~URLInputSource()
 
 InputStream* URLInputSource::createInputStream()
 {
-    return u.createInputStream (false);
+    return u.createInputStream (URL::InputStreamOptions (URL::ParameterHandling::inAddress)).release();
 }
 
 InputStream* URLInputSource::createInputStreamFor (const String& relatedItemPath)
 {
     auto sub = u.getSubPath();
     auto parent = sub.containsChar (L'/') ? sub.upToLastOccurrenceOf ("/", false, false)
-                                          : String ();
+                                          : String();
 
-    return u.withNewSubPath (parent).getChildURL (relatedItemPath).createInputStream (false);
+    return u.withNewSubPath (parent)
+            .getChildURL (relatedItemPath)
+            .createInputStream (URL::InputStreamOptions (URL::ParameterHandling::inAddress))
+            .release();
 }
 
 int64 URLInputSource::hashCode() const

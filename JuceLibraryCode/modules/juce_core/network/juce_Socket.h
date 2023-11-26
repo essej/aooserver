@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -69,7 +69,7 @@ public:
 
         @returns  true on success; false may indicate that another socket is already bound
                   on the same port
-        @see bindToPort(int localPortNumber), IPAddress::getAllAddresses
+        @see bindToPort (int localPortNumber), IPAddress::getAllAddresses
     */
     bool bindToPort (int localPortNumber, const String& localAddress);
 
@@ -176,6 +176,16 @@ public:
     */
     StreamingSocket* waitForNextConnection() const;
 
+    /** Change the socket's receive buffer size in the system.
+        @returns true if it succeeds.
+     */
+    bool setReceiveBufferSize (int bufsize);
+
+    /** Change the socket's send buffer size in the system.
+        @returns true if it succeeds.
+     */
+    bool setSendBufferSize (int bufsize);
+    
 private:
     //==============================================================================
     String hostName;
@@ -238,7 +248,7 @@ public:
 
         @returns  true on success; false may indicate that another socket is already bound
                   on the same port
-        @see bindToPort(int localPortNumber), IPAddress::getAllAddresses
+        @see bindToPort (int localPortNumber), IPAddress::getAllAddresses
     */
     bool bindToPort (int localPortNumber, const String& localAddress);
 
@@ -299,13 +309,52 @@ public:
     /** Writes bytes to the socket from a buffer.
 
         Note that this method will block unless you have checked the socket is ready
-        for writing before calling it (see the waitUntilReady() method).
+        for writing before calling it (see the waitUntilReady() method). 
+     
+        This method caches the most recently used low-level remote address for efficiency
+        if you repeatedly use the same remote host and port consecutively, but if you are sending to multiple
+        different remote destinations, it is strongly recommended that you create
+        RemotePeerToken for each destination host/port with createRemotePeerToken() 
+        and use the write() method that takes a RemotePeerToken instead.
 
         @returns  the number of bytes written, or -1 if there was an error
     */
     int write (const String& remoteHostname, int remotePortNumber,
                const void* sourceBuffer, int numBytesToWrite);
 
+    
+    /** Remote peer token object to use for more efficent write operations
+     */
+
+    class RemoteAddrInfo {
+      public:
+        RemoteAddrInfo(const String& remoteHostname, int remotePortNumber);        
+        //RemoteAddrInfo(void * sockaddr);        
+        ~RemoteAddrInfo();
+        
+        String hostname;
+        int    port;
+
+        void * getAddrInfo() const { return addrInfo; }
+        
+    private:
+        void * addrInfo = nullptr;
+
+        JUCE_DECLARE_NON_COPYABLE (RemoteAddrInfo)
+    };
+    
+    
+    /** Writes bytes to the socket from a buffer, using remotepeertoken instead of hostname port, for efficiency reasons
+
+        Note that this method will block unless you have checked the socket is ready
+        for writing before calling it (see the waitUntilReady() method).
+
+        @returns the number of bytes written, or -1 if there was an error.
+    */
+
+    int write (RemoteAddrInfo & remotePeerToken,
+                  const void* sourceBuffer, int numBytesToWrite);
+    
     /** Closes the underlying socket object.
 
         Closes the underlying socket object and aborts any read or write operations.
@@ -352,12 +401,24 @@ public:
     */
     bool setEnablePortReuse (bool enabled);
 
+    /** Change the socket's receive buffer size in the system.
+        @returns true if it succeeds.
+     */
+    bool setReceiveBufferSize (int bufsize);
+
+    /** Change the socket's send buffer size in the system.
+        @returns true if it succeeds.
+     */
+    bool setSendBufferSize (int bufsize);
+
+    
 private:
     //==============================================================================
     std::atomic<int> handle { -1 };
     bool isBound = false;
     String lastBindAddress, lastServerHost;
     int lastServerPort = -1;
+    std::unique_ptr<RemoteAddrInfo> lastRemotePeer;
     void* lastServerAddress = nullptr;
     mutable CriticalSection readLock;
 

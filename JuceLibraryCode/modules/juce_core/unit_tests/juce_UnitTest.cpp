@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -194,20 +194,21 @@ bool UnitTestRunner::shouldAbortTests()
     return false;
 }
 
+static String getTestNameString (const String& testName, const String& subCategory)
+{
+    return testName + " / " + subCategory;
+}
+
 void UnitTestRunner::beginNewTest (UnitTest* const test, const String& subCategory)
 {
     endTest();
     currentTest = test;
 
-    auto* r = new TestResult();
-    results.add (r);
-    r->unitTestName = test->getName();
-    r->subcategoryName = subCategory;
-    r->passes = 0;
-    r->failures = 0;
+    auto testName = test->getName();
+    results.add (new TestResult (testName, subCategory));
 
     logMessage ("-----------------------------------------------------------------");
-    logMessage ("Starting test: " + r->unitTestName + " / " + subCategory + "...");
+    logMessage ("Starting tests in: " + getTestNameString (testName, subCategory) + "...");
 
     resultsUpdated();
 }
@@ -216,6 +217,8 @@ void UnitTestRunner::endTest()
 {
     if (auto* r = results.getLast())
     {
+        r->endTime = Time::getCurrentTime();
+
         if (r->failures > 0)
         {
             String m ("FAILED!!  ");
@@ -228,7 +231,7 @@ void UnitTestRunner::endTest()
         }
         else
         {
-            logMessage ("All tests completed successfully");
+            logMessage ("Completed tests in " + getTestNameString (r->unitTestName, r->subcategoryName));
         }
     }
 }

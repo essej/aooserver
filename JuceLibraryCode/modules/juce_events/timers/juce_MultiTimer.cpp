@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -23,7 +23,7 @@
 namespace juce
 {
 
-struct MultiTimerCallback    : public Timer
+struct MultiTimerCallback final : public Timer
 {
     MultiTimerCallback (const int tid, MultiTimer& mt) noexcept
         : owner (mt), timerID (tid)
@@ -56,7 +56,7 @@ Timer* MultiTimer::getCallback (int timerID) const noexcept
 {
     for (int i = timers.size(); --i >= 0;)
     {
-        MultiTimerCallback* const t = static_cast<MultiTimerCallback*> (timers.getUnchecked(i));
+        MultiTimerCallback* const t = static_cast<MultiTimerCallback*> (timers.getUnchecked (i));
 
         if (t->timerID == timerID)
             return t;

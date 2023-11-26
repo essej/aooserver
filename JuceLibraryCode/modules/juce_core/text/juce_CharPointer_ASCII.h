@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -182,7 +182,7 @@ public:
     /** Returns the number of bytes that would be needed to represent the given
         unicode character in this encoding format.
     */
-    static inline size_t getBytesRequiredFor (const juce_wchar) noexcept
+    static size_t getBytesRequiredFor (const juce_wchar) noexcept
     {
         return 1;
     }
@@ -335,7 +335,7 @@ public:
     /** Parses this string as a 64-bit integer. */
     int64 getIntValue64() const noexcept
     {
-       #if JUCE_LINUX || JUCE_ANDROID || JUCE_MINGW
+       #if JUCE_LINUX || JUCE_BSD || JUCE_ANDROID || JUCE_MINGW
         return atoll (data);
        #elif JUCE_WINDOWS
         return _atoi64 (data);
@@ -344,11 +344,26 @@ public:
        #endif
     }
 
+    /** Parses this string as a 64-bit unsigned integer. */
+    uint64 getUIntValue64() const noexcept
+    {
+       #if JUCE_LINUX || JUCE_BSD || JUCE_ANDROID || JUCE_MINGW
+        return strtoull (data, nullptr, 0);
+       #elif JUCE_WINDOWS
+        return _strtoui64 (data, nullptr, 0);
+       #else
+        return CharacterFunctions::getIntValue <uint64, CharPointer_ASCII> (*this);
+       #endif
+    }
+    
     /** Parses this string as a floating point double. */
     double getDoubleValue() const noexcept                      { return CharacterFunctions::getDoubleValue (*this); }
 
     /** Returns the first non-whitespace character in the string. */
     CharPointer_ASCII findEndOfWhitespace() const noexcept      { return CharacterFunctions::findEndOfWhitespace (*this); }
+
+    /** Move this pointer to the first non-whitespace character in the string. */
+    void incrementToEndOfWhitespace() noexcept                  { CharacterFunctions::incrementToEndOfWhitespace (*this); }
 
     /** Returns true if the given unicode character can be represented in this encoding. */
     static bool canRepresent (juce_wchar character) noexcept

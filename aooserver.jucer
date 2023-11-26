@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" jucerVersion="5.4.7">
+<JUCERPROJECT id="uIwnJd" name="aooserver" projectType="consoleapp" jucerFormatVersion="1">
   <MAINGROUP id="GRsEDg" name="aooserver">
     <GROUP id="{24D97FFE-8626-16CD-2BA0-9F94E04385F6}" name="aoo">
       <GROUP id="{2DF67E37-6AF9-3BAB-4A3C-BDD62DA1FF2B}" name="aoo_source">

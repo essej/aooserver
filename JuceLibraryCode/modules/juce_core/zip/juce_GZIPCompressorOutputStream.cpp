@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -92,7 +92,7 @@ private:
             {
                 case Z_STREAM_END:
                     finished = true;
-                    // Deliberate fall-through..
+                    JUCE_FALLTHROUGH
                 case Z_OK:
                 {
                     data += dataSize - stream.avail_in;
@@ -159,7 +159,7 @@ bool GZIPCompressorOutputStream::setPosition (int64 /*newPosition*/)
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-struct GZIPTests  : public UnitTest
+struct GZIPTests final : public UnitTest
 {
     GZIPTests()
         : UnitTest ("GZIP", UnitTestCategories::compression)

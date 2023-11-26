@@ -2,17 +2,16 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2017 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
 
-   By using JUCE, you agree to the terms of both the JUCE 5 End-User License
-   Agreement and JUCE 5 Privacy Policy (both updated and effective as of the
-   27th April 2017).
+   By using JUCE, you agree to the terms of both the JUCE 7 End-User License
+   Agreement and JUCE Privacy Policy.
 
-   End User License Agreement: www.juce.com/juce-5-licence
-   Privacy Policy: www.juce.com/juce-5-privacy-policy
+   End User License Agreement: www.juce.com/juce-7-licence
+   Privacy Policy: www.juce.com/juce-privacy-policy
 
    Or: You may also use this code under the terms of the GPL v3 (see
    www.gnu.org/licenses).
@@ -252,7 +251,7 @@ void BlowFish::encrypt (uint32& data1, uint32& data2) const noexcept
     for (int i = 0; i < 16; ++i)
     {
         l ^= p[i];
-        r ^= F(l);
+        r ^= F (l);
         std::swap (l, r);
     }
 
@@ -268,7 +267,7 @@ void BlowFish::decrypt (uint32& data1, uint32& data2) const noexcept
     for (int i = 17; i > 1; --i)
     {
         l ^= p[i];
-        r ^= F(l);
+        r ^= F (l);
         std::swap (l, r);
     }
 
@@ -281,9 +280,8 @@ void BlowFish::encrypt (MemoryBlock& data) const
     auto size = data.getSize();
     data.setSize (size + (8u - (size % 8u)));
 
-    auto success = encrypt (data.getData(), size, data.getSize());
+    [[maybe_unused]] auto success = encrypt (data.getData(), size, data.getSize());
 
-    ignoreUnused (success);
     jassert (success >= 0);
 }
 
@@ -319,7 +317,7 @@ bool BlowFish::apply (void* data, size_t size, void (BlowFish::*op) (uint32&, ui
 {
     union AlignedAccessHelper
     {
-        int8 byte[sizeof(uint32) * 2];
+        int8 byte[sizeof (uint32) * 2];
         uint32 data[2];
     };
 
@@ -338,7 +336,7 @@ bool BlowFish::apply (void* data, size_t size, void (BlowFish::*op) (uint32&, ui
 int BlowFish::pad (void* data, size_t size, size_t bufferSize) noexcept
 {
     // add padding according to https://tools.ietf.org/html/rfc2898#section-6.1.1
-    const uint8 paddingSize = 8u - (size % 8u);
+    const uint8 paddingSize = static_cast<uint8> (8u - (size % 8u));
     auto n = size + paddingSize;
 
     if (n > bufferSize)
@@ -358,7 +356,7 @@ int BlowFish::unpad (const void* data, size_t size) noexcept
         return -1;
 
     // remove padding according to https://tools.ietf.org/html/rfc2898#section-6.1.1
-    auto paddingSize = reinterpret_cast<const uint8*>(data)[size - 1u];
+    auto paddingSize = reinterpret_cast<const uint8*> (data)[size - 1u];
 
     if (paddingSize == 0 || paddingSize > 8 || paddingSize > size)
         return -1;
@@ -371,7 +369,7 @@ int BlowFish::unpad (const void* data, size_t size) noexcept
 //==============================================================================
 #if JUCE_UNIT_TESTS
 
-class BlowFishTests  : public UnitTest
+class BlowFishTests final : public UnitTest
 {
 public:
     BlowFishTests()
@@ -384,7 +382,7 @@ public:
         auto* dst = reinterpret_cast<uint8*> (block.getData());
 
         for (size_t i = 0; i < n; ++i)
-            dst[i] = static_cast<uint8> (random.nextInt(255));
+            dst[i] = static_cast<uint8> (random.nextInt (255));
     }
 
     void expectEqualData (const void* dataA, const void* dataB, size_t size, const String& failureMessage)
@@ -439,7 +437,7 @@ public:
 
         for (int i = 0; i < 100; ++i)
         {
-            const int keySize = (random.nextInt(17) + 1) * static_cast<int> (sizeof (uint32));
+            const int keySize = (random.nextInt (17) + 1) * static_cast<int> (sizeof (uint32));
             MemoryBlock key (static_cast<size_t> (keySize));
             fillMemoryBlockWithRandomData (key, random);
 
@@ -461,7 +459,7 @@ public:
             {
                 // Test unaligned data encryption/decryption. This will be flagged up by a check for
                 // undefined behaviour!
-                auto nudge = static_cast<uintptr_t> (random.nextInt (sizeof(void*) - 1));
+                auto nudge = static_cast<uintptr_t> (random.nextInt (sizeof (void*) - 1));
                 auto unalignedData = (void*) (reinterpret_cast<uintptr_t> (data.getData()) + nudge);
                 size_t newSize = data.getSize() - nudge;
 

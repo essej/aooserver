@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the JUCE library.
-   Copyright (c) 2018 - ROLI Ltd.
+   Copyright (c) 2022 - Raw Material Software Limited
 
    JUCE is an open source library subject to commercial or open-source
    licensing.
@@ -87,27 +87,27 @@ namespace ArrayBaseTestsHelpers
     };
 }
 
-bool operator== (const ArrayBaseTestsHelpers::TriviallyCopyableType& tct,
-                 const ArrayBaseTestsHelpers::NonTriviallyCopyableType& ntct)
+static bool operator== (const ArrayBaseTestsHelpers::TriviallyCopyableType& tct,
+                        const ArrayBaseTestsHelpers::NonTriviallyCopyableType& ntct)
 {
     return tct.getValue() == ntct.getValue();
 }
 
-bool operator== (const ArrayBaseTestsHelpers::NonTriviallyCopyableType& ntct,
-                 const ArrayBaseTestsHelpers::TriviallyCopyableType& tct)
+static bool operator== (const ArrayBaseTestsHelpers::NonTriviallyCopyableType& ntct,
+                        const ArrayBaseTestsHelpers::TriviallyCopyableType& tct)
 {
     return tct == ntct;
 }
 
-class ArrayBaseTests  : public UnitTest
+class ArrayBaseTests final : public UnitTest
 {
     using CopyableType    = ArrayBaseTestsHelpers::TriviallyCopyableType;
     using NoncopyableType = ArrayBaseTestsHelpers::NonTriviallyCopyableType;
 
-   #if ! (defined(__GNUC__) && __GNUC__ < 5 && ! defined(__clang__))
-    static_assert (std::is_trivially_copyable<CopyableType>::value,
+   #if ! (defined (__GNUC__) && __GNUC__ < 5 && ! defined (__clang__))
+    static_assert (std::is_trivially_copyable_v<CopyableType>,
                    "Test TriviallyCopyableType is not trivially copyable");
-    static_assert (! std::is_trivially_copyable<NoncopyableType>::value,
+    static_assert (! std::is_trivially_copyable_v<NoncopyableType>,
                    "Test NonTriviallyCopyableType is trivially copyable");
    #endif
 
@@ -545,7 +545,7 @@ private:
         virtual ~Base() = default;
     };
 
-    struct Derived : Base
+    struct Derived final : public Base
     {
     };
 
@@ -562,7 +562,7 @@ private:
         }
     }
 
-    template<typename A, typename B>
+    template <typename A, typename B>
     void checkEqual (const ArrayBase<A, DummyCriticalSection>& a,
                      const ArrayBase<B, DummyCriticalSection>& b)
     {
@@ -572,7 +572,7 @@ private:
             expect (a[i] == b[i]);
     }
 
-    template<typename A, typename B>
+    template <typename A, typename B>
     void checkEqual (ArrayBase<A, DummyCriticalSection>& a,
                      std::vector<B>& b)
     {
@@ -582,7 +582,7 @@ private:
             expect (a[i] == b[(size_t) i]);
     }
 
-    template<typename A, typename B, typename C>
+    template <typename A, typename B, typename C>
     void checkEqual (ArrayBase<A, DummyCriticalSection>& a,
                      ArrayBase<B, DummyCriticalSection>& b,
                      std::vector<C>& c)
