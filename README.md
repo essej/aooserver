@@ -33,16 +33,19 @@ the IP to be used for private groups, but not present any of the public groups t
 
 # USAGE WITH DOCKER
 
-A docker image is available to use.
+A Dockerfile is available for building the docker container image.
 
-How to use:
+Building the container image:
 
     git clone https://github.com/essej/aooserver.git
     cd aooserver/docker
     docker build . -t aooserver
-    docker run -d -p 10998:10998/udp -p 10998:10998 --name aooserver aooserver
 
-How to run with flags: `docker run -d -p PORT:PORT/udp -p PORT:PORT --name aooserver aooserver aooserver [flags]`
+Using the container image:
+
+    docker run -p 10998:10998/udp -p 10998:10998 aooserver
+
+How to run with flags: `docker run -p PORT:PORT/udp -p PORT:PORT aooserver aooserver [flags]`
 
 # SOURCE NOTES
 
