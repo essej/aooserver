@@ -31,6 +31,21 @@ that the server should block from being allowed to be used. If a line has an IP 
 followed by a comma and the word public (`1.2.3.4,public` for example), then it will allow 
 the IP to be used for private groups, but not present any of the public groups to that user.
 
+# USAGE WITH DOCKER
+
+A Dockerfile is available for building the docker container image.
+
+Building the container image:
+
+    git clone https://github.com/essej/aooserver.git
+    cd aooserver/docker
+    docker build . -t aooserver
+
+Using the container image:
+
+    docker run -p 10998:10998/udp -p 10998:10998 aooserver
+
+How to run with flags: `docker run -p PORT:PORT/udp -p PORT:PORT aooserver aooserver [flags]`
 
 # SOURCE NOTES
 
