@@ -8,7 +8,7 @@ WORKDIR /app
 RUN git clone --recursive https://github.com/essej/aooserver.git
 
 ## Build the release
-WORKDIR /app/aooserverBuilds/LinuxMakefile
+WORKDIR /app/aooserver/Builds/LinuxMakefile
 RUN bash -c "CONFIG=Release make"
 
 
