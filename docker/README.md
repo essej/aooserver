@@ -7,7 +7,7 @@ Short version:
 
 ```bash
 # Prebuilt image from the GitHub Container Registry
-docker pull ghcr.io/cubed-it/aooserver:latest
+docker pull ghcr.io/essej/aooserver:latest
 
 # Local build (the build context is the root directory of the repository)
 docker build -t aooserver -f docker/Dockerfile .

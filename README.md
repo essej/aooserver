@@ -60,10 +60,11 @@ docker build --build-arg SOURCE=source-remote \
 ## Prebuilt image from the GitHub Container Registry
 
 The CI pipeline (`.github/workflows/docker-publish.yml`) builds the image for all
-relevant platforms and pushes it to the GitHub Container Registry:
+relevant platforms and pushes it to the GitHub Container Registry. The image name
+follows the repository owner, i.e. `ghcr.io/<owner>/aooserver`:
 
 ```bash
-docker pull ghcr.io/cubed-it/aooserver:latest
+docker pull ghcr.io/essej/aooserver:latest
 ```
 
 Published platforms:
