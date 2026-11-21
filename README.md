@@ -31,6 +31,71 @@ that the server should block from being allowed to be used. If a line has an IP 
 followed by a comma and the word public (`1.2.3.4,public` for example), then it will allow 
 the IP to be used for private groups, but not present any of the public groups to that user.
 
+# DOCKER
+
+Docker setup for the [AoO Connection Server (`aooserver`)](https://github.com/essej/aooserver),
+based on `debian:13-slim` (multi-stage build, non-root user with UID/GID `10001`).
+
+The [`docker/Dockerfile`](docker/Dockerfile) builds the image in two stages: the builder
+stage compiles `aooserver` from source, the runtime stage contains nothing but the binary
+and the required `libcurl` runtime library in a slim `debian:13-slim` image.
+
+## Standard build (local architecture)
+
+The build context is the root directory of this repository:
+
+```bash
+docker build -t aooserver -f docker/Dockerfile .
+```
+
+Instead of the local source, a specific branch, tag or commit of the upstream
+repository can be built:
+
+```bash
+docker build --build-arg SOURCE=source-remote \
+             --build-arg AOOSERVER_REF=<commit-or-tag> \
+             -t aooserver -f docker/Dockerfile .
+```
+
+## Prebuilt image from the GitHub Container Registry
+
+The CI pipeline (`.github/workflows/docker-publish.yml`) builds the image for all
+relevant platforms and pushes it to the GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/cubed-it/aooserver:latest
+```
+
+Published platforms:
+
+| Platform       | Architecture                             |
+| -------------- | ---------------------------------------- |
+| `linux/amd64`  | x86-64 servers, desktops                 |
+| `linux/arm64`  | Raspberry Pi 4/5, ARM servers, Apple Silicon |
+| `linux/arm/v7` | Raspberry Pi 2/3, older ARM hardware     |
+
+## Running the container
+
+By default `aooserver` listens on port `10998` (TCP and UDP):
+
+```bash
+docker run -d \
+  --name aooserver \
+  --restart unless-stopped \
+  -p 10998:10998/tcp \
+  -p 10998:10998/udp \
+  aooserver
+```
+
+### Optional parameters and operation
+
+* **Passing server flags:** because of the `ENTRYPOINT`, arguments are passed straight to `aooserver` (e.g. `-h` for the help output or `-p <port>`).
+* **Checking the logs:**
+  ```bash
+  docker logs -f aooserver
+  ```
+* **Read-only mode:** since only `stdout` is written to during normal operation, the container also runs with `--read-only`.
+* **Logs/blocklist as volumes (`-l` / `-b`):** mounted host directories have to be readable/writable for UID/GID `10001`.
 
 # SOURCE NOTES
 
