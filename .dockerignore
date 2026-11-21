@@ -1,0 +1,17 @@
+# Keep the build context small: everything below is either not needed to
+# compile aooserver or would invalidate the Docker layer cache.
+
+.git
+.github
+.dockerignore
+.gitignore
+
+# Build output of the native (non-Docker) build
+Builds/LinuxMakefile/build
+**/build/
+
+# Local editor/OS noise
+.vscode
+.idea
+*.swp
+.DS_Store
